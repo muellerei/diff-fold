@@ -18,6 +18,39 @@ To see a folded diff, press ctrl+o: the expanded transcript shows every diff in 
 the summaries; click **▸ show diff** under one to open that diff (**▾ hide diff** folds it again), or switch them all with
 `/diff-fold`. The button is drawn only there: the main screen reports no clicks, and ctrl+o already does the job.
 
+Folding changes only what the transcript shows. The files and what Claude sees stay as they are, and `git diff` or your
+editor still shows every change in full, the place to look when edits are accepted without asking.
+
+## Install
+
+Needs Claude Code 2.1.287 or later, the first version that runs mods. Tested with Claude Code 2.1.314. Run inside Claude Code:
+
+```text
+/plugin marketplace add muellerei/diff-fold
+/plugin install diff-fold@muellerei-diff-fold
+```
+
+The second command opens the plugin's page. Choose **Install for you (user scope)** and the mod is active right away.
+
+From a clone instead: `claude --plugin-dir /path/to/diff-fold`.
+
+Ideas, questions and a quick "works on my setup" are all welcome: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Update and remove
+
+Claude Code does not update plugins from this marketplace on its own. To get a new version, run this in a terminal and restart
+Claude Code:
+
+```text
+claude plugin marketplace update muellerei-diff-fold
+claude plugin update diff-fold@muellerei-diff-fold
+```
+
+You can also turn on auto-update for the marketplace under `/plugin`, Marketplaces.
+
+`claude plugin uninstall diff-fold@muellerei-diff-fold` removes the mod, `claude plugin marketplace remove muellerei-diff-fold` the
+marketplace. `claude plugin disable diff-fold@muellerei-diff-fold` switches it off and keeps it installed.
+
 ## What it folds
 
 | Tool                                                        | Summary                                                                               |
@@ -108,20 +141,6 @@ In `/config`, under the mod:
 | `icon`           | `🔶`    | The mark at the start of each summary line. Empty for none.                          |
 
 For Bash commands Claude Code's own setting `bashEditDiffEnabled` matters too; see [Bash commands](#bash-commands).
-
-## Install
-
-Tested with Claude Code 2.1.314. Run inside Claude Code:
-
-```text
-/plugin marketplace add muellerei/diff-fold
-/plugin install diff-fold@muellerei-diff-fold
-/reload-plugins
-```
-
-From a clone instead: `claude --plugin-dir /path/to/diff-fold`.
-
-Ideas, questions and a quick "works on my setup" are all welcome: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it can reach
 
