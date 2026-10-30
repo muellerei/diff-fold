@@ -48,3 +48,11 @@ The banner and `docs/images/fold.svg` are built by the Python scripts in `docs/s
 `sh docs/src/build.sh`. Change the script, not the SVG, and look at the result in a browser, since the banner moves. The values a
 picture shows (the default of `smallDiffLines`, the icon) are constants in `docs/src/common.py`; `check.py` compares them with
 `plugin.json`, `config.ts`, the README and the workflow, and checks that the example edit in `fold.svg` is large enough to be folded.
+
+The listing icon, `.claude-plugin/icon.png`, comes from `python3 docs/src/icon.py`, which needs Pillow. It is not part of
+`build.sh`: the developer portal takes the icon only at the first submission, and Pillow's output differs between versions, so CI
+does not compare it.
+
+The social preview, `docs/images/social-preview.png` (1280x640, uploaded under the repository's settings), is the picture
+`python3 docs/src/banner.py --social` writes to `social-preview.svg`, rendered with a headless browser:
+`chrome --headless --window-size=1280,640 --screenshot=docs/images/social-preview.png file://$PWD/docs/images/social-preview.svg`.
