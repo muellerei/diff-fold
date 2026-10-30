@@ -18,7 +18,8 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 - A Bash call has a diff to fold only when Claude Code records the files it changed. Its setting `bashEditDiffEnabled`, in the
   user settings, turns that on in every permission mode; it is optional, and without it the call shows no diff (measured in the
   `acceptEdits` and `bypassPermissions` modes, Claude Code 2.1.314). The README explains it under "Bash commands".
-- `/diff-fold` switches between summaries and full diffs; the choice is kept across sessions.
+- `/diff-fold` switches between summaries and full diffs; the choice is kept across sessions. If it cannot be saved, the switch
+  still holds for the session and says so.
 - Under the fullscreen layout, where ctrl+o keeps the summaries, a **▸ show diff** button under each summary opens that one diff
   in full and **▾ hide diff** folds it again. It has no hotkey, so it takes no key from another mod, and it is left out on the
   main screen: there a click does not reach it (measured, Claude Code 2.1.314) and ctrl+o shows every diff.

@@ -8,7 +8,7 @@ type On = Parameters<TestBody>[1]
 
 // The host beneath the mod: a root, a store, a command list, and an engine that draws every result as `full diff`,
 // a shell result as its stdout, so a test sees whether the mod drew or left the drawing to the engine.
-function host(on: On, { root = '/repo', stored }: { root?: string; stored?: boolean } = {}) {
+function host(on: On, { root = '/repo', stored, storeFails }: { root?: string; stored?: boolean; storeFails?: boolean } = {}) {
   let currentRoot = root
   const logs: { text: string; to: string }[] = []
   on('ui.log', (_, e) => {
@@ -21,6 +21,7 @@ function host(on: On, { root = '/repo', stored }: { root?: string; stored?: bool
   on('command.register', () => ({ value: { command: 'diff-fold' } }))
   on('store.get', (_, e) => ({ value: store.get(e.key) }))
   on('store.set', (_, e) => {
+    if (storeFails) throw new Error('store unavailable')
     store.set(e.key, e.value)
     return { value: undefined }
   })
@@ -118,6 +119,15 @@ test('the command switches to full diffs and back, says which, and keeps the cho
   expect(store.get('isHiding')).toBe(true)
   const hidden = await mount($, 'Edit', editOutput('/repo/a.ts', 9))
   expect(await hidden.find({ text: '🔶 Changed a.ts:12 (+9 −1)' })).toBeDefined()
+})
+
+test('a switch that cannot be stored still switches, for this session only, and says so', async ($, on) => {
+  host(on, { storeFails: true })
+  await start($)
+
+  expect((await toggle($)).text).toBe('Diffs shown in full, for this session only: the choice could not be saved.')
+  const shown = await mount($, 'Edit', editOutput('/repo/a.ts', 9))
+  expect(await texts(shown)).toEqual(['full diff'])
 })
 
 test('a session starts with the choice an earlier one stored', async ($, on) => {

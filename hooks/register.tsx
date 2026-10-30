@@ -31,11 +31,19 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // `/diff-fold` is this mod's own command, so it is answered here and not handed to the hooks beneath.
+  // The host puts the mod's name in front of these texts (observed, Claude Code 2.1.314), so they leave it out.
+  // The switch is what was asked for and keeping it for later sessions comes second, so a store that fails costs
+  // only that, and the text says so.
   on('command.run', { command: COMMAND }, async $ => {
     const nowHiding = await update($, isHiding, value => !value)
-    await $.store.set(STORE_KEY, nowHiding)
+    try {
+      await $.store.set(STORE_KEY, nowHiding)
+    } catch {
+      return { text: `${nowHiding ? 'Diffs hidden' : 'Diffs shown in full'}, for this session only: the choice could not be saved.` }
+    }
     return { text: nowHiding ? 'Diffs hidden: each file edit shows one summary line.' : 'Diffs shown in full.' }
-  }).catch(() => ({ text: 'diff-fold could not switch; the diffs stay as they were.' }))
+  }).catch(() => ({ text: 'Could not switch; the diffs stay as they were.' }))
 
   // Errors, ctrl+o and --verbose keep the engine's own drawing. Under the fullscreen layout the host reports rows
   // as expanded that it draws folded, so `isExpanded` is read only on the main screen (shellcast reads it the same
