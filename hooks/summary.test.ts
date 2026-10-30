@@ -76,6 +76,31 @@ test(`Bash: past ${MAX_FILES} files the rest are counted, those the host left ou
   expect(summary?.more).toBe(6)
 })
 
+test('Bash: a file the host has no diff for (a binary one) is named from changedFiles, without counts', async () => {
+  const output = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 1, changedFiles: ['/repo/bin.dat', '/repo/a.ts'] } }
+  expect(summarize('Bash', output, ROOT, 5)).toEqual({
+    files: [
+      { verb: 'Changed', where: 'a.ts:4', change: { added: 9, removed: 0 } },
+      { verb: 'Changed', where: 'bin.dat' },
+    ],
+    more: 0,
+  })
+})
+
+test('Bash: no more files are named than the host counts, the rest stay counted, and the list keeps its limit', async () => {
+  const fewer = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 1, changedFiles: ['/repo/x.bin', '/repo/y.bin', 7] } }
+  expect(summarize('Bash', fewer, ROOT, 5)?.files.map(file => file.where)).toEqual(['a.ts:4', 'x.bin'])
+  const unnamed = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 3, changedFiles: ['/repo/x.bin'] } }
+  expect(summarize('Bash', unnamed, ROOT, 5)).toMatchObject({ more: 2 })
+  const files = Array.from({ length: MAX_FILES }, (_, i) => shellFile(`/repo/f${i}.ts`, 3))
+  const full = { bashEditDiff: { files, moreFiles: 2, changedFiles: ['/repo/x.bin', '/repo/y.bin'] } }
+  expect(summarize('Bash', full, ROOT, 5)).toMatchObject({ more: 2 })
+})
+
+test('Bash: only files without a diff is no summary; the host draws that call itself', async () => {
+  expect(summarize('Bash', { bashEditDiff: { files: [], moreFiles: 1, changedFiles: ['/repo/bin.dat'] } }, ROOT, 0)).toBeUndefined()
+})
+
 test('Bash: a command that changed no files, or whose diff the host skipped, is no summary', async () => {
   expect(summarize('Bash', { stdout: 'ok' }, ROOT, 0)).toBeUndefined()
   expect(summarize('Bash', { bashEditDiff: { files: [], moreFiles: 0, skipped: true } }, ROOT, 0)).toBeUndefined()

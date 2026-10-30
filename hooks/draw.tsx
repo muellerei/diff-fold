@@ -11,12 +11,19 @@ export function drawSummary({ Box, Text }: Elements, summary: Summary, icon: str
   const lead = icon ? `${icon} ` : ''
   return (
     <Box flexDirection="column">
-      {summary.files.map(file => (
-        <Text dimColor>
-          {lead}
-          {file.verb} {file.where} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>)
-        </Text>
-      ))}
+      {summary.files.map(file =>
+        file.change ? (
+          <Text dimColor>
+            {lead}
+            {file.verb} {file.where} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>)
+          </Text>
+        ) : (
+          <Text dimColor>
+            {lead}
+            {file.verb} {file.where} (no diff)
+          </Text>
+        ),
+      )}
       {summary.more > 0 ? (
         <Text dimColor>
           {lead}and {summary.more} more {summary.more === 1 ? 'file' : 'files'}

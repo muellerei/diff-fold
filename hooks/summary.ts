@@ -4,7 +4,8 @@
 import { countCell, countHunks, firstChangedLine, linesOf, sum, type Change, type Hunk } from './counts'
 import { relativeTo } from './paths'
 
-export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change: Change }
+// `change` is absent for a file the host changed but has no diff for (a binary one): it is named without counts.
+export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change }
 // A Bash command that changed more files than are listed ends in one line that counts the rest.
 export type Summary = { files: FileLine[]; more: number }
 
@@ -15,7 +16,9 @@ type Patched = { filePath?: unknown; structuredPatch?: Hunk[]; gitDiff?: { addit
 type Written = Patched & { type?: 'create' | 'update'; content?: string }
 type Notebook = { notebook_path?: unknown; cell_id?: string; old_source?: string; new_source?: string; error?: string }
 type ShellFile = { filePath: string; hunks?: Hunk[]; created?: true; deleted?: true }
-type Shell = { bashEditDiff?: { files?: ShellFile[]; moreFiles?: number } }
+// `changedFiles` names every file the command changed, those without a diff too (measured, Claude Code 2.1.314: a
+// binary file is in it and counted in `moreFiles`, not in `files`).
+type Shell = { bashEditDiff?: { files?: ShellFile[]; moreFiles?: number; changedFiles?: unknown[] } }
 
 // The tools whose result shows a diff that this mod can sum up.
 export const TOOLS = ['Edit', 'Write', 'NotebookEdit', 'Bash'] as const
@@ -40,7 +43,7 @@ export function touchesSensitiveFile(tool: string, output: unknown): boolean {
 export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | undefined {
   if (typeof output !== 'object' || output === null || touchesSensitiveFile(tool, output)) return undefined
   const isSmall = (change: Change) => change.added + change.removed <= smallLines
-  const one = (line: FileLine | undefined) => (line && !isSmall(line.change) ? { files: [line], more: 0 } : undefined)
+  const one = (line: FileLine | undefined) => (line?.change && !isSmall(line.change) ? { files: [line], more: 0 } : undefined)
 
   switch (tool) {
     case 'Edit':
@@ -89,9 +92,15 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
       change: countHunks(file.hunks),
     }
   })
-  if (isSmall(sum(lines.map(line => line.change)))) return undefined
+  // The files the host counted but has no diff for, named where `changedFiles` has them, no more than it counted.
+  const moreFiles = output.bashEditDiff?.moreFiles ?? 0
+  const listed = new Set(files.map(file => file.filePath))
+  const unlisted = [...new Set(output.bashEditDiff?.changedFiles ?? [])].filter((path): path is string => typeof path === 'string' && !listed.has(path))
+  const named = unlisted.slice(0, moreFiles)
+  lines.push(...named.map(path => ({ verb: 'Changed' as const, where: relativeTo(path, root) })))
+  if (isSmall(sum(lines.flatMap(line => line.change ?? [])))) return undefined
   const shown = lines.slice(0, MAX_FILES)
-  return { files: shown, more: lines.length - shown.length + (output.bashEditDiff?.moreFiles ?? 0) }
+  return { files: shown, more: lines.length - shown.length + moreFiles - named.length }
 }
 
 // A Bash result without the per-file diff, for the engine to draw the command's own output.

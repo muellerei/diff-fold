@@ -148,6 +148,14 @@ test('under the fullscreen layout an edit is folded although the row is reported
   expect(await texts(shown)).toEqual(['full diff'])
 })
 
+test('a file without a diff is drawn with its name and no counts', async ($, on) => {
+  host(on)
+  await start($)
+  const output = { stdout: 'ok', bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 1, changedFiles: ['/repo/bin.dat'] } }
+  const ui = await mount($, 'Bash', output)
+  expect(await ui.find({ text: '🔶 Changed bin.dat (no diff)' })).toBeDefined()
+})
+
 test('under the fullscreen layout a folded diff has a button that opens it in full and folds it again', async ($, on) => {
   const { logs } = host(on)
   await start($)

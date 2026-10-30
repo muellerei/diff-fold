@@ -30,12 +30,12 @@ the summaries; click **▸ show diff** under one to open that diff (**▾ hide d
 
 Left in full:
 
-- a change of `smallDiffLines` lines or fewer (5 by default)
+- a change of `smallDiffLines` lines or fewer (5 by default); for a Bash command, the lines of all its files together
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
 - a change to a sensitive file, however large: `.env*`, `settings*.json`, `CLAUDE.md`, and keys (`*.pem`, `*.key`,
-  `id_rsa*`, `id_ecdsa*`, `id_ed25519*`). Only the file name counts. A Bash command that changed one of them among others shows
-  its whole diff
+  `id_rsa*`, `id_ecdsa*`, `id_ed25519*`). Only the file name counts, in upper or lower case alike. A Bash command that changed
+  one of them among others shows its whole diff
 - everything while the transcript is expanded (ctrl+o, `--verbose` or `"verbose": true` in the settings), on the main screen;
   the fullscreen layout folds regardless
 
@@ -55,7 +55,7 @@ permission mode.
 | on, without diff-fold | the command's output, then the full diff of every changed file                |
 | on, with diff-fold    | the command's output, then one line per changed file                          |
 
-With the setting on, a Bash call that changed five files ends like this:
+With the setting on, a Bash call that changed five files ends like this, a new or removed file named so:
 
 ```text
 🔶 Changed src/a.ts:12 (+8 −8)
@@ -63,6 +63,10 @@ With the setting on, a Bash call that changed five files ends like this:
 🔶 Deleted src/c.ts (+0 −22)
 🔶 and 2 more files
 ```
+
+A file Claude Code has no diff for, such as a binary one, is named without counts next to the files that have one:
+`🔶 Changed assets/logo.png (no diff)`. A call that changed only such files has nothing to fold, and Claude Code draws it itself. A
+file too large to diff leaves the whole call without a diff; Claude Code then says so itself and diff-fold has nothing to fold.
 
 To turn it on, add this line to your user settings, `~/.claude/settings.json`, and start a new session:
 
