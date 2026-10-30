@@ -7,7 +7,7 @@ import type { Register } from 'claude-code'
 import type { StartRoot } from '../types'
 import { settingsFrom } from './config'
 import { drawSummary } from './draw'
-import { summarize, TOOLS, withoutEditDiff } from './summary'
+import { summarize, touchesSensitiveFile, TOOLS, withoutEditDiff } from './summary'
 
 const COMMAND = 'diff-fold'
 const STORE_KEY = 'isHiding'
@@ -49,7 +49,7 @@ export const register: Register = (on, options) => {
     // Debug log only, never the transcript, and no content: the tool, the decision and the two facts it turns on.
     const decision = summary
       ? `folded, ${summary.files.length + summary.more} ${summary.files.length + summary.more === 1 ? 'file' : 'files'}`
-      : `in full, ${keptBecause ?? 'small or no change'}`
+      : `in full, ${keptBecause ?? (touchesSensitiveFile(e.props.tool, e.props.output) ? 'sensitive file' : 'small or no change')}`
     $.ui.log(`diff-fold: ${e.props.tool} ${decision} (isExpanded=${isExpanded}, fullscreen=${isFullscreen})`, { to: 'debug' })
     if (!summary) return next(e)
 

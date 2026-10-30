@@ -13,7 +13,7 @@ A long diff pushes the conversation out of view, and once the edit is done you r
 _Drawn, not recorded._
 
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
-Small diffs, diffs held for your review and failed edits stay in full.
+Small diffs, diffs held for your review, failed edits and changes to sensitive files such as `.env` stay in full.
 To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full. Under the fullscreen layout ctrl+o keeps
 the summaries; switch with `/diff-fold` there.
 
@@ -32,7 +32,11 @@ Left in full:
 - a change of `smallDiffLines` lines or fewer (5 by default)
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
-- everything while the transcript is expanded (ctrl+o, `--verbose`), on the main screen
+- a change to a sensitive file, however large: `.env*`, `settings*.json`, `CLAUDE.md`, and keys (`*.pem`, `*.key`,
+  `id_rsa*`, `id_ecdsa*`, `id_ed25519*`). Only the file name counts. A Bash command that changed one of them among others shows
+  its whole diff
+- everything while the transcript is expanded (ctrl+o, `--verbose` or `"verbose": true` in the settings), on the main screen;
+  the fullscreen layout folds regardless
 
 There is no line above the prompt and no key binding to set up.
 
@@ -110,8 +114,13 @@ the chain draws the line you see.
 
 ## Credits
 
-diff-fold is derived from [hide-diffs](https://github.com/gixxy22/hide-diffs) by gixxy22 (MIT): the summary line, its counting
-rules and the small-diff threshold come from there. See [NOTICE](NOTICE).
+diff-fold started as a fork of [hide-diffs](https://github.com/gixxy22/hide-diffs) by gixxy22 (MIT). The idea of folding a diff
+into one line comes from there, and so do the summary line, its counting rules, the 🔶 icon and the small-diff threshold. Thank you,
+gixxy22. See [NOTICE](NOTICE).
+
+hide-diffs does more than that: it also folds every shell command to one line, counts the session's changes in a line above the
+prompt, has a compact mode, and needs two key bindings set up for its switches. diff-fold keeps only the core, folding diffs, and
+nothing else, so there is no line above the prompt, no key binding and nothing to set up. If you want the rest, use hide-diffs.
 
 ## License
 

@@ -20,11 +20,25 @@ type Shell = { bashEditDiff?: { files?: ShellFile[]; moreFiles?: number } }
 // The tools whose result shows a diff that this mod can sum up.
 export const TOOLS = ['Edit', 'Write', 'NotebookEdit', 'Bash'] as const
 
+// Files whose change is shown whole however large it is: secrets (.env files, keys) and what steers Claude Code and
+// Claude (settings JSON, CLAUDE.md). A summary line would hide what a change to them does. Matched on the file name
+// only, so a folder named `.env` or a file `settings.ts` is folded as usual.
+const SENSITIVE = /^(\.env.*|settings.*\.json|CLAUDE\.md|.*\.(pem|key)|id_(rsa|ecdsa|ed25519).*)$/i
+
+const isSensitive = (path: unknown) => typeof path === 'string' && SENSITIVE.test(path.split(/[\\/]/).pop() ?? '')
+
+// Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
+export function touchesSensitiveFile(tool: string, output: unknown): boolean {
+  if (typeof output !== 'object' || output === null) return false
+  if (tool === 'Bash') return ((output as Shell).bashEditDiff?.files ?? []).some(file => isSensitive(file.filePath))
+  return (tool === 'Edit' || tool === 'Write') && isSensitive((output as Patched).filePath)
+}
+
 // The summary for a finished call's result, or undefined where the diff is drawn in full: another tool, a result of
 // an unknown shape, a change held for review (the file is unchanged and the person has to see what is proposed), a
-// failed notebook edit, and a change of `smallLines` lines or fewer.
+// change to a sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer.
 export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | undefined {
-  if (typeof output !== 'object' || output === null) return undefined
+  if (typeof output !== 'object' || output === null || touchesSensitiveFile(tool, output)) return undefined
   const isSmall = (change: Change) => change.added + change.removed <= smallLines
   const one = (line: FileLine | undefined) => (line && !isSmall(line.change) ? { files: [line], more: 0 } : undefined)
 

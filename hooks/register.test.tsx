@@ -154,6 +154,7 @@ test('each result of a folding tool leaves one line in the debug log with the de
   for (const [tool, output, props, isFullscreen] of [
     ['Edit', editOutput('/repo/a.ts', 9), {}, false],
     ['Edit', editOutput('/repo/a.ts', 1), {}, false],
+    ['Edit', editOutput('/repo/.env', 9), {}, false],
     ['Edit', editOutput('/repo/a.ts', 9), { isExpanded: true }, false],
     ['Edit', editOutput('/repo/a.ts', 9), { isErrored: true }, true],
     ['Read', { file: 'x' }, {}, false],
@@ -168,6 +169,7 @@ test('each result of a folding tool leaves one line in the debug log with the de
   expect([...new Set(logs.map(l => l.text))]).toEqual([
     'diff-fold: Edit folded, 1 file (isExpanded=false, fullscreen=false)',
     'diff-fold: Edit in full, small or no change (isExpanded=false, fullscreen=false)',
+    'diff-fold: Edit in full, sensitive file (isExpanded=false, fullscreen=false)',
     'diff-fold: Edit in full, expanded (isExpanded=true, fullscreen=false)',
     'diff-fold: Edit in full, errored (isExpanded=false, fullscreen=true)',
     'diff-fold: Edit in full, switched off (isExpanded=false, fullscreen=false)',

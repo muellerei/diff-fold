@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { MAX_FILES, summarize, withoutEditDiff } from './summary'
+import { MAX_FILES, summarize, touchesSensitiveFile, withoutEditDiff } from './summary'
 import { editOutput, shellFile } from './test-support'
 
 const ROOT = '/repo'
@@ -79,6 +79,35 @@ test(`Bash: past ${MAX_FILES} files the rest are counted, those the host left ou
 test('Bash: a command that changed no files, or whose diff the host skipped, is no summary', async () => {
   expect(summarize('Bash', { stdout: 'ok' }, ROOT, 0)).toBeUndefined()
   expect(summarize('Bash', { bashEditDiff: { files: [], moreFiles: 0, skipped: true } }, ROOT, 0)).toBeUndefined()
+})
+
+test('a sensitive file is left whole however large its change: .env files, settings JSON, CLAUDE.md, keys', async () => {
+  for (const path of [
+    '/repo/.env',
+    '/repo/.env.local',
+    '/repo/.claude/settings.json',
+    '/repo/settings.local.json',
+    '/repo/CLAUDE.md',
+    '/repo/certs/server.pem',
+    '/repo/tls.key',
+    '/home/me/.ssh/id_ed25519',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toBeUndefined()
+  }
+  expect(summarize('Write', { type: 'create', filePath: '/repo/.env', content: 'A=1\n'.repeat(9) }, ROOT, 5)).toBeUndefined()
+})
+
+test('only the file name counts: a folder or a look-alike name is folded as usual', async () => {
+  for (const path of ['/repo/.env/notes.ts', '/repo/settings.ts', '/repo/docs/CLAUDE.md.bak', '/repo/keys/index.ts', '/repo/src/env.ts']) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toBeDefined()
+  }
+})
+
+test('Bash: one sensitive file among those a command changed leaves the whole diff in full', async () => {
+  const output = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9), shellFile('/repo/.env', 1)], moreFiles: 0 } }
+  expect(summarize('Bash', output, ROOT, 5)).toBeUndefined()
+  expect(touchesSensitiveFile('Bash', output)).toBe(true)
+  expect(touchesSensitiveFile('Bash', { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)] } })).toBe(false)
 })
 
 test('another tool, or a result that is no object, is no summary', async () => {
