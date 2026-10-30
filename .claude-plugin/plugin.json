@@ -1,0 +1,27 @@
+{
+  "name": "diff-fold",
+  "version": "0.1.0",
+  "description": "Shows one summary line per file instead of the diff under Edit, Write, NotebookEdit and file-changing Bash calls",
+  "author": {
+    "name": "Patrick Müller",
+    "url": "https://github.com/muellerei"
+  },
+  "license": "MIT",
+  "keywords": ["claude-code", "claude-code-plugin", "claude-code-mod", "diff", "transcript"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "smallDiffLines": {
+      "type": "number",
+      "title": "Show small diffs",
+      "description": "Diffs with this many changed lines or fewer are shown in full. 0 folds every diff.",
+      "default": 5,
+      "min": 0
+    },
+    "icon": {
+      "type": "string",
+      "title": "Icon",
+      "description": "Shown at the start of each summary line, so a hidden diff is easy to spot. Leave empty for none.",
+      "default": "🔶"
+    }
+  }
+}

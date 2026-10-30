@@ -1,0 +1,14 @@
+.DS_Store
+.idea/
+node_modules/
+
+# Not in the repository: notes and working material
+local/
+.scratch/
+
+# Agent working instructions
+CLAUDE.md
+.claude/
+
+# Written by Claude Code each time it loads the mod: its API types for the editor
+.claude-plugin/types/
