@@ -7,6 +7,8 @@ declare module 'claude-code' {
     'diff-fold': {
       // Whether diffs are summed up; also written to `$.store`, so the choice outlives the session.
       isHiding: boolean
+      // Per tool result: whether its fullscreen button has opened the diff. Session only.
+      isOpen: boolean
       startRoot: StartRoot
     }
   }

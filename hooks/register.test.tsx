@@ -148,6 +148,50 @@ test('under the fullscreen layout an edit is folded although the row is reported
   expect(await texts(shown)).toEqual(['full diff'])
 })
 
+test('under the fullscreen layout a folded diff has a button that opens it in full and folds it again', async ($, on) => {
+  const { logs } = host(on)
+  await start($)
+  const ui = await mount($, 'Edit', editOutput('/repo/a.ts', 9), { isExpanded: true }, true)
+  expect((await ui.find({ key: 'diff' }))?.text).toBe('▸ show diff')
+
+  await ui.press({ key: 'diff' })
+  expect(await texts(ui)).toContain('full diff')
+  expect(await ui.find({ text: '🔶 Changed a.ts:12 (+9 −1)' })).toBeUndefined()
+  expect((await ui.find({ key: 'diff' }))?.text).toBe('▾ hide diff')
+  expect(logs.map(l => l.text)).toContain('diff-fold: Edit in full, opened (isExpanded=true, fullscreen=true)')
+
+  await ui.press({ key: 'diff' })
+  expect(await ui.find({ text: '🔶 Changed a.ts:12 (+9 −1)' })).toBeDefined()
+  expect(await texts(ui)).not.toContain('full diff')
+})
+
+test('the button opens only its own row', async ($, on) => {
+  host(on)
+  await start($)
+  const first = await mount($, 'Edit', editOutput('/repo/a.ts', 9), { tool_use_id: 'a' }, true)
+  const second = await mount($, 'Edit', editOutput('/repo/b.ts', 9), { tool_use_id: 'b' }, true)
+  await first.press({ key: 'diff' })
+  expect(await texts(first)).toContain('full diff')
+  expect(await second.find({ text: '🔶 Changed b.ts:12 (+9 −1)' })).toBeDefined()
+})
+
+test('an opened shell command shows its output with the diff, as the engine draws it', async ($, on) => {
+  host(on)
+  await start($)
+  const output = { stdout: 'ok', bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 0 } }
+  const ui = await mount($, 'Bash', output, {}, true)
+  await ui.press({ key: 'diff' })
+  expect(await texts(ui)).toContain('ok with diff')
+})
+
+test('on the main screen there is no button: ctrl+o shows the diffs there, and a click would not arrive', async ($, on) => {
+  host(on)
+  await start($)
+  const ui = await mount($, 'Edit', editOutput('/repo/a.ts', 9), {}, false)
+  expect(await ui.find({ text: '🔶 Changed a.ts:12 (+9 −1)' })).toBeDefined()
+  expect(await ui.findAll({ type: 'Button' })).toHaveLength(0)
+})
+
 test('each result of a folding tool leaves one line in the debug log with the decision and why, and no content', async ($, on) => {
   const { logs } = host(on)
   await start($)

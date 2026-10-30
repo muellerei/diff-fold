@@ -15,7 +15,8 @@ _Drawn, not recorded._
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
 Small diffs, diffs held for your review, failed edits and changes to sensitive files such as `.env` stay in full.
 To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full. Under the fullscreen layout ctrl+o keeps
-the summaries; switch with `/diff-fold` there.
+the summaries; click **▸ show diff** under one to open that diff (**▾ hide diff** folds it again), or switch them all with
+`/diff-fold`. The button is drawn only there: the main screen reports no clicks, and ctrl+o already does the job.
 
 ## What it folds
 
@@ -80,6 +81,9 @@ To turn it on, add this line to your user settings, `~/.claude/settings.json`, a
 ## Switching
 
 `/diff-fold` switches between summaries and full diffs and says which is on. The choice is kept across sessions.
+
+Under the fullscreen layout each summary also has a **▸ show diff** button that opens just that diff; **▾ hide diff** folds it
+again. Which diffs are open is not kept: a new session starts with all of them folded.
 
 ## Settings
 

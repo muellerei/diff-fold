@@ -16,6 +16,9 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
   user settings, turns that on in every permission mode; it is optional, and without it the call shows no diff (measured in the
   `acceptEdits` and `bypassPermissions` modes, Claude Code 2.1.314). The README explains it under "Bash commands".
 - `/diff-fold` switches between summaries and full diffs; the choice is kept across sessions.
+- Under the fullscreen layout, where ctrl+o keeps the summaries, a **▸ show diff** button under each summary opens that one diff
+  in full and **▾ hide diff** folds it again. It has no hotkey, so it takes no key from another mod, and it is left out on the
+  main screen: there a click does not reach it (measured, Claude Code 2.1.314) and ctrl+o shows every diff.
 - Settings `smallDiffLines` and `icon`.
 - One line per decision in the debug log (`--debug-file`): folded or in full, why, and the `isExpanded` and fullscreen values.
 
@@ -25,6 +28,6 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
   so nothing has to stay on screen.
 - A Bash command that changed files lists each file (up to three, then a count) instead of `Changed 3 files`.
 - The expanded transcript (ctrl+o, `--verbose`) shows every diff in full on the main screen; under the fullscreen layout the
-  host reports rows as expanded that it draws folded, so there `/diff-fold` switches.
+  host reports rows as expanded that it draws folded, so there a button opens one diff and `/diff-fold` switches all.
 - A failed notebook edit keeps its result.
 - Grouped tool rows, shell command rows and the session tally are left out: diff-fold draws only the result block of an edit.

@@ -1,7 +1,7 @@
 // diff-fold: a finished edit's diff becomes one summary line per file. Everything that judges or counts lives in
 // pure modules (summary.ts, counts.ts, paths.ts, config.ts); this file only wires them to the host.
 
-import { atom, read, update } from 'claude-code'
+import { atom, memberOf, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { StartRoot } from '../types'
@@ -12,6 +12,7 @@ import { summarize, touchesSensitiveFile, TOOLS, withoutEditDiff } from './summa
 const COMMAND = 'diff-fold'
 const STORE_KEY = 'isHiding'
 const isHiding = atom({ plugin: 'diff-fold', key: 'isHiding' } as const, true)
+const isOpen = atom({ plugin: 'diff-fold', key: 'isOpen' } as const, false)
 const startRoot = atom({ plugin: 'diff-fold', key: 'startRoot' } as const, null as StartRoot)
 
 export const register: Register = (on, options) => {
@@ -46,21 +47,35 @@ export const register: Register = (on, options) => {
     const keptBecause = e.props.isErrored ? 'errored' : isExpanded && !isFullscreen ? 'expanded' : !(await read($, isHiding)) ? 'switched off' : undefined
     const root = (await read($, startRoot)) ?? (await $.session.root())
     const summary = keptBecause ? undefined : summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    const open = memberOf(isOpen, e)
+    const isOpened = summary !== undefined && isFullscreen && (await read($, open))
     // Debug log only, never the transcript, and no content: the tool, the decision and the two facts it turns on.
-    const decision = summary
-      ? `folded, ${summary.files.length + summary.more} ${summary.files.length + summary.more === 1 ? 'file' : 'files'}`
-      : `in full, ${keptBecause ?? (touchesSensitiveFile(e.props.tool, e.props.output) ? 'sensitive file' : 'small or no change')}`
+    const decision = isOpened
+      ? 'in full, opened'
+      : summary
+        ? `folded, ${summary.files.length + summary.more} ${summary.files.length + summary.more === 1 ? 'file' : 'files'}`
+        : `in full, ${keptBecause ?? (touchesSensitiveFile(e.props.tool, e.props.output) ? 'sensitive file' : 'small or no change')}`
     $.ui.log(`diff-fold: ${e.props.tool} ${decision} (isExpanded=${isExpanded}, fullscreen=${isFullscreen})`, { to: 'debug' })
     if (!summary) return next(e)
 
-    const { Box, Text } = $.ui.resolve(e)
-    if (e.props.tool !== 'Bash') return drawSummary({ Box, Text }, summary, settings.icon)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    // Only under the fullscreen layout: there ctrl+o keeps the summaries and a click reaches the button. The main
+    // screen reports no clicks, and ctrl+o already shows every diff there. No hotkey, so no key of a neighbour is taken.
+    const button = isFullscreen && <Button key="diff" plain label={isOpened ? '▾ hide diff' : '▸ show diff'} onPress={() => update($, open, value => !value)} />
+    if (isOpened)
+      return (
+        <Box flexDirection="column">
+          {button}
+          {await next(e)}
+        </Box>
+      )
     // A shell command keeps its own output, drawn by the engine without the diff; the summary follows it.
-    const drawn = await next({ ...e, props: { ...e.props, output: withoutEditDiff(e.props.output) } })
+    const drawn = e.props.tool === 'Bash' && (await next({ ...e, props: { ...e.props, output: withoutEditDiff(e.props.output) } }))
     return (
       <Box flexDirection="column">
         {drawn}
         {drawSummary({ Box, Text }, summary, settings.icon)}
+        {button}
       </Box>
     )
   })
