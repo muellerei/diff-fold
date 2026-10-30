@@ -33,9 +33,18 @@ Left in full:
 - a change of `smallDiffLines` lines or fewer (5 by default); for a Bash command, the lines of all its files together
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
-- a change to a sensitive file, however large: `.env*`, `settings*.json`, `CLAUDE.md`, and keys (`*.pem`, `*.key`,
-  `id_rsa*`, `id_ecdsa*`, `id_ed25519*`). Only the file name counts, in upper or lower case alike. A Bash command that changed
-  one of them among others shows its whole diff
+- a change to a sensitive file, however large, in upper or lower case alike. A Bash command that changed one of them among
+  others shows its whole diff.
+  - secrets and credentials: `.env*`, `.npmrc`, `.netrc`, `.pypirc`, keys (`*.pem`, `*.key`, `id_rsa*`, `id_ecdsa*`,
+    `id_ed25519*`) and anything in `.ssh/`
+  - what runs on its own: `.git*` files such as `.gitattributes` and `.gitlab-ci.yml`, anything in `.git/`, `.husky/`,
+    `.github/workflows/` and `.github/actions/`, `.mcp.json` and `hooks.json`
+  - what steers Claude or another agent: `settings*.json`, `CLAUDE.md`, `AGENTS.md`, and in `.claude/` the folders `agents`,
+    `commands`, `skills`, `hooks`, `rules` and `output-styles`
+
+  A file is matched on its name, a folder on its path: a folder named `.env` or a file `settings.ts` is folded as usual, and so
+  are Claude's own notes such as `.claude/plans/`
+
 - everything while the transcript is expanded (ctrl+o, `--verbose` or `"verbose": true` in the settings), on the main screen;
   the fullscreen layout folds regardless
 

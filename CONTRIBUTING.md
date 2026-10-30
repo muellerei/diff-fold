@@ -14,7 +14,7 @@ Open an [issue](https://github.com/muellerei/diff-fold/issues) or start a [discu
 
 ## A file that should stay in full
 
-Some files are never folded because a summary line would hide what a change to them does: `.env*`, `settings*.json`, `CLAUDE.md` and keys (the list is under What it folds in the README). If you work with a file that belongs on that list, tell me which one and why, or add it yourself if you feel like it, and I'll show you where.
+Some files are never folded because a summary line would hide what a change to them does: secrets, what runs on its own such as CI workflows and git hooks, and what steers Claude (the list is under What it folds in the README). If you work with a file that belongs on that list, tell me which one and why, or add it yourself if you feel like it, and I'll show you where.
 
 ## Build and check
 

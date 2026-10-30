@@ -128,8 +128,47 @@ test('a sensitive file is left whole however large its change: .env files, setti
   expect(summarize('Write', { type: 'create', filePath: '/repo/.env', content: 'A=1\n'.repeat(9) }, ROOT, 5)).toBe('sensitive file')
 })
 
-test('only the file name counts: a folder or a look-alike name is folded as usual', async () => {
-  for (const path of ['/repo/.env/notes.ts', '/repo/settings.ts', '/repo/docs/CLAUDE.md.bak', '/repo/keys/index.ts', '/repo/src/env.ts']) {
+test('also left whole: what runs on its own, what holds credentials, and what steers Claude or another agent', async () => {
+  for (const path of [
+    '/repo/.github/workflows/check.yml',
+    '/repo/.github/actions/setup/action.yml',
+    '/repo/.gitlab-ci.yml',
+    '/repo/.husky/pre-commit',
+    '/repo/.git/hooks/pre-push',
+    '/repo/.gitattributes',
+    '/repo/.gitmodules',
+    '/home/me/.ssh/config',
+    '/repo/.npmrc',
+    '/home/me/.netrc',
+    '/home/me/.pypirc',
+    '/repo/.mcp.json',
+    '/repo/hooks/hooks.json',
+    '/repo/AGENTS.md',
+    '/repo/.claude/agents/reviewer.md',
+    '/repo/.claude/commands/ship.md',
+    '/repo/.claude/skills/deploy/SKILL.md',
+    '/repo/.claude/hooks/guard.sh',
+    '/repo/.claude/rules/tests.md',
+    '/repo/.claude/output-styles/terse.md',
+    'C:\\repo\\.github\\workflows\\check.yml',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toBe('sensitive file')
+  }
+})
+
+test('a folder or a look-alike name is folded as usual', async () => {
+  for (const path of [
+    '/repo/.env/notes.ts',
+    '/repo/settings.ts',
+    '/repo/docs/CLAUDE.md.bak',
+    '/repo/keys/index.ts',
+    '/repo/src/env.ts',
+    '/repo/.github/ISSUE_TEMPLATE/bug_report.md',
+    '/repo/src/hooks/useAgents.ts',
+    '/repo/docs/agents/overview.md',
+    '/home/me/.claude/plans/next-step.md',
+    '/repo/my.github/workflows/x.yml',
+  ]) {
     expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toHaveProperty('files')
   }
 })

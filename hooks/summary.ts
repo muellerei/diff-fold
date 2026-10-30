@@ -25,12 +25,21 @@ type Shell = { bashEditDiff?: { files?: ShellFile[]; moreFiles?: number; changed
 // The tools whose result shows a diff that this mod can sum up.
 export const TOOLS = ['Edit', 'Write', 'NotebookEdit', 'Bash'] as const
 
-// Files whose change is shown whole however large it is: secrets (.env files, keys) and what steers Claude Code and
-// Claude (settings JSON, CLAUDE.md). A summary line would hide what a change to them does. Matched on the file name
-// only, so a folder named `.env` or a file `settings.ts` is folded as usual.
-const SENSITIVE = /^(\.env.*|settings.*\.json|CLAUDE\.md|.*\.(pem|key)|id_(rsa|ecdsa|ed25519).*)$/i
+// Files whose change is shown whole however large it is, because a summary line would hide what a change to them does:
+// secrets and credentials (.env files, keys, .npmrc), what runs on its own (git's own files, CI configuration, MCP
+// servers, plugin hooks) and what steers Claude Code, Claude or another agent (settings JSON, CLAUDE.md, AGENTS.md).
+// Matched on the file name, so a folder named `.env` or a file `settings.ts` is folded as usual.
+const SENSITIVE_NAME =
+  /^(\.env.*|\.git.*|\.npmrc|\.netrc|\.pypirc|\.mcp\.json|hooks\.json|settings.*\.json|CLAUDE\.md|AGENTS\.md|.*\.(pem|key)|id_(rsa|ecdsa|ed25519).*)$/i
+// The same for every file in these folders: git's own and its hooks, CI workflows and actions, SSH, and the parts of
+// `.claude` that steer Claude. `.claude/plans`, `.claude/projects` and the like are Claude's own notes and are folded.
+const SENSITIVE_DIR = /(^|\/)(\.git|\.husky|\.ssh|\.github\/(workflows|actions)|\.claude\/(agents|commands|skills|hooks|rules|output-styles))\//i
 
-const isSensitive = (path: unknown) => typeof path === 'string' && SENSITIVE.test(path.split(/[\\/]/).pop() ?? '')
+const isSensitive = (path: unknown) => {
+  if (typeof path !== 'string') return false
+  const slashed = path.replace(/\\/g, '/')
+  return SENSITIVE_NAME.test(slashed.split('/').pop() ?? '') || SENSITIVE_DIR.test(slashed)
+}
 
 // Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
 function touchesSensitiveFile(tool: string, output: object): boolean {

@@ -8,7 +8,7 @@ A report helps most when it says which Claude Code version you use, which tool m
 
 diff-fold hides diffs, so the worst bug is a diff hidden where the README promises it in full. These are worth a report:
 
-- a change to a sensitive file (`.env*`, `settings*.json`, `CLAUDE.md`, keys) is folded, alone or among the files of a Bash command
+- a change to a sensitive file (secrets, what runs on its own such as CI workflows and git hooks, what steers Claude; the list is under [What it folds](README.md#what-it-folds)) is folded, alone or among the files of a Bash command
 - an edit or write that is only proposed, and not yet written, is folded
 - a summary line names other files or other counts than the change it stands for
 - the mod reads or writes something beyond [What it can reach](README.md#what-it-can-reach)
