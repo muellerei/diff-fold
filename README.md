@@ -112,6 +112,19 @@ Tested with Claude Code 2.1.314. Run inside Claude Code:
 
 From a clone instead: `claude --plugin-dir /path/to/diff-fold`.
 
+Ideas, questions and a quick "works on my setup" are all welcome: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## What it can reach
+
+- **Reads:** the result Claude Code draws under each Edit, Write, NotebookEdit and Bash call (the paths, the diff and its counts),
+  and the project folder when the session starts, so paths stay relative to it.
+- **Writes:** no files. Whether diffs are hidden is kept in the mod's store in Claude Code, so `/diff-fold` holds across
+  sessions; which rows are open lives in the session only. With `--debug-file`, one line per result: the tool and the decision,
+  never a path or text from the result.
+- **Network and processes:** none.
+
+`claude plugin validate .` lists every call the hooks make.
+
 ## Other mods
 
 diff-fold draws only the result block under Edit, Write, NotebookEdit and file-changing Bash calls. It leaves tool rows, grouped
@@ -129,6 +142,12 @@ gixxy22. See [NOTICE](NOTICE).
 hide-diffs does more than that: it also folds every shell command to one line, counts the session's changes in a line above the
 prompt, has a compact mode, and needs two key bindings set up for its switches. diff-fold keeps only the core, folding diffs, and
 nothing else, so there is no line above the prompt, no key binding and nothing to set up. If you want the rest, use hide-diffs.
+
+## Support
+
+Report problems and ideas as issues at https://github.com/muellerei/diff-fold/issues, or start a discussion at
+https://github.com/muellerei/diff-fold/discussions. Say which Claude Code version you use, main screen or fullscreen layout, and
+what the line showed. If you would like to help, [CONTRIBUTING.md](CONTRIBUTING.md) is the place to start.
 
 ## License
 

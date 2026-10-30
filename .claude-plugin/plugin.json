@@ -7,7 +7,9 @@
     "url": "https://github.com/muellerei"
   },
   "license": "MIT",
-  "keywords": ["claude-code", "claude-code-plugin", "claude-code-mod", "diff", "transcript"],
+  "homepage": "https://github.com/muellerei/diff-fold",
+  "repository": "https://github.com/muellerei/diff-fold",
+  "keywords": ["claude-code", "claude-code-plugin", "claude-code-mod", "claude-code-mods", "claude-mods", "function-hooks", "diff", "diff-viewer"],
   "types": "./types/index.d.ts",
   "userConfig": {
     "smallDiffLines": {
