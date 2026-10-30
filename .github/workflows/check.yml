@@ -37,3 +37,6 @@ jobs:
           claude --plugin-dir . -p ok || true
           npx -p typescript@5 tsc -p .
       - run: npx prettier@3 --check hooks types docs
+      - run: python3 docs/src/check.py
+      - name: Pictures match their scripts
+        run: sh docs/src/build.sh && git diff --exit-code -- docs

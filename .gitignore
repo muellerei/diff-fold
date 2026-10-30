@@ -12,3 +12,6 @@ CLAUDE.md
 
 # Written by Claude Code each time it loads the mod: its API types for the editor
 .claude-plugin/types/
+
+# Written by Python when docs/src/check.py runs
+__pycache__/

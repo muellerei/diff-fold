@@ -16,6 +16,8 @@ claude plugin test .
 CLAUDE_CODE_PLUGIN_DIR_WATCH=1 claude --plugin-dir . -p ok   # lays down the types tsc needs
 npx -p typescript@5 tsc -p .
 npx prettier@3 --check hooks types docs
+python3 docs/src/check.py
+sh docs/src/build.sh && git diff --exit-code -- docs
 ```
 
 `tsc` checks against the types Claude Code writes to `.claude-plugin/types/` when it loads the mod. They follow the Claude Code that
@@ -28,3 +30,10 @@ mounts `ToolResult` against a fake host that draws every result as `full diff`, 
 it to the engine. Tool results for the tests are built in `test-support.ts`.
 
 A test for a fix has to fall without the fix: take the fix out, run `claude plugin test .`, and see the test fail.
+
+## Pictures
+
+The banner and `docs/images/fold.svg` are built by the Python scripts in `docs/src/` (Python 3, nothing to install):
+`sh docs/src/build.sh`. Change the script, not the SVG, and look at the result in a browser, since the banner moves. The values a
+picture shows (the default of `smallDiffLines`, the icon) are constants in `docs/src/common.py`; `check.py` compares them with
+`plugin.json`, `config.ts`, the README and the workflow, and checks that the example edit in `fold.svg` is large enough to be folded.

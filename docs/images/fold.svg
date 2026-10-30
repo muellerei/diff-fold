@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="470" viewBox="0 0 780 470" role="img" aria-labelledby="t d">
+  <title id="t">an edit's diff without and with diff-fold</title>
+  <desc id="d">Above, Claude Code draws an edit of src/api/index.ts with its full diff: 5 lines added and 1 removed. Below, with diff-fold, the same edit takes one line: Changed src/api/index.ts:41 (+5 −1).</desc>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 15px; }
+    .dim { fill: #8b949e; } .fg { fill: #e6edf3; } .y { fill: #e3b341; } .g { fill: #3fb950; } .r { fill: #f85149; } .b { fill: #58a6ff; }
+    text { white-space: pre; } .s { font-size: 13px; } .h { font-size: 12px; letter-spacing: 1px; }
+  </style>
+  <rect width="780" height="470" rx="10" fill="#0d1117"/>
+  <rect width="780" height="34" rx="10" fill="#161b22"/><rect y="24" width="780" height="10" fill="#161b22"/>
+  <circle cx="22" cy="17" r="5.5" fill="#ff5f56"/><circle cx="42" cy="17" r="5.5" fill="#ffbd2e"/><circle cx="62" cy="17" r="5.5" fill="#27c93f"/>
+  <text x="390" y="22" text-anchor="middle" class="dim" style="font-size:12px">diff-fold</text>
+
+  <text x="36" y="72" class="dim h">WITHOUT</text>
+  <text x="36" y="104" class="g">●</text><text x="56" y="104" class="fg">Update(src/api/index.ts)</text>
+  <text x="36" y="128" class="dim s">  ⎿  Updated src/api/index.ts with 5 additions and 1 removal</text>
+  <text x="76" y="152" text-anchor="end" class="dim s">40</text><text x="88" y="152" class="dim s">  export async function load(id: string) {</text>
+  <text x="76" y="174" text-anchor="end" class="dim s"></text><text x="88" y="174" class="r s">-   const res = await fetch(url(id))</text>
+  <text x="76" y="196" text-anchor="end" class="dim s">41</text><text x="88" y="196" class="g s">+   const res = await fetch(url(id), { signal })</text>
+  <text x="76" y="218" text-anchor="end" class="dim s">42</text><text x="88" y="218" class="g s">+   if (!res.ok) {</text>
+  <text x="76" y="240" text-anchor="end" class="dim s">43</text><text x="88" y="240" class="g s">+     throw new LoadError(id, res.status)</text>
+  <text x="76" y="262" text-anchor="end" class="dim s">44</text><text x="88" y="262" class="g s">+   }</text>
+  <text x="76" y="284" text-anchor="end" class="dim s">45</text><text x="88" y="284" class="g s">+   log.debug("loaded", id)</text>
+  <text x="76" y="306" text-anchor="end" class="dim s">46</text><text x="88" y="306" class="dim s">    return res.json()</text>
+
+  <line x1="36" y1="328" x2="744" y2="328" stroke="#30363d" stroke-width="1"/>
+
+  <text x="36" y="362" class="dim h">WITH DIFF-FOLD</text>
+  <text x="36" y="394" class="g">●</text><text x="56" y="394" class="fg">Update(src/api/index.ts)</text>
+  <text x="36" y="418" class="dim s">  ⎿  🔶 Changed src/api/index.ts:41 (<tspan class="g">+5</tspan> <tspan class="r">−1</tspan>)</text>
+
+  <text x="740" y="452" text-anchor="end" class="dim" style="font-size:12px">Drawn, not recorded.</text>
+</svg>

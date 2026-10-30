@@ -1,11 +1,16 @@
-# diff-fold
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner-dark.svg">
+    <img src="docs/images/banner-light.svg" width="900" alt="diff-fold: one summary line per file instead of the diff under a finished Claude Code edit">
+  </picture>
+</p>
 
 A Claude Code mod that shows one summary line per file instead of the diff under a finished edit.
 A long diff pushes the conversation out of view, and once the edit is done you rarely read it there:
 
-```
-🔶 Changed src/api/index.ts:42 (+12 −3)
-```
+![An edit of src/api/index.ts with its full diff, and below it the same edit as one line: Changed src/api/index.ts:41 (+5 −1)](docs/images/fold.svg)
+
+_Drawn, not recorded._
 
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
 Small diffs, diffs held for your review and failed edits stay in full.
@@ -57,13 +62,15 @@ In `/config`, under the mod:
 
 ## Install
 
-From a clone:
+Tested with Claude Code 2.1.314. Run inside Claude Code:
 
-```bash
-claude --plugin-dir /path/to/diff-fold
+```text
+/plugin marketplace add muellerei/diff-fold
+/plugin install diff-fold@muellerei-diff-fold
+/reload-plugins
 ```
 
-Tested with Claude Code 2.1.314.
+From a clone instead: `claude --plugin-dir /path/to/diff-fold`.
 
 ## Other mods
 

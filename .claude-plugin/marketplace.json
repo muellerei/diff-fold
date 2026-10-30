@@ -1,0 +1,12 @@
+{
+  "name": "muellerei-diff-fold",
+  "owner": { "name": "Patrick Müller" },
+  "description": "Claude Code mods by muellerei.",
+  "plugins": [
+    {
+      "name": "diff-fold",
+      "source": "./",
+      "description": "One summary line per file instead of the diff under a finished edit."
+    }
+  ]
+}
