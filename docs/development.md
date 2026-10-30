@@ -23,6 +23,13 @@ sh docs/src/build.sh && git diff --exit-code -- docs
 `tsc` checks against the types Claude Code writes to `.claude-plugin/types/` when it loads the mod. They follow the Claude Code that
 wrote them, so lay them down again after an update. They are never committed.
 
+## Debugging
+
+When a diff is not folded as expected, start Claude Code with `--debug-file <path>` and look for lines starting with
+`diff-fold:`. Each says, per result of Edit, Write, NotebookEdit or Bash, whether it was folded or drawn in full and why, with the
+`isExpanded` and fullscreen values the decision turned on. Without a debug log the lines go nowhere. A render can run more than once
+per result (a scroll, a resize), so the same line may repeat.
+
 ## Tests
 
 Pure modules have a test file each (`paths.test.ts`, `counts.test.ts`, `summary.test.ts`, `config.test.ts`). `register.test.tsx`

@@ -7,7 +7,7 @@ import type { Register } from 'claude-code'
 import type { StartRoot } from '../types'
 import { settingsFrom } from './config'
 import { drawSummary } from './draw'
-import { summarize, withoutEditDiff } from './summary'
+import { summarize, TOOLS, withoutEditDiff } from './summary'
 
 const COMMAND = 'diff-fold'
 const STORE_KEY = 'isHiding'
@@ -36,11 +36,21 @@ export const register: Register = (on, options) => {
     return { text: nowHiding ? 'Diffs hidden: each file edit shows one summary line.' : 'Diffs shown in full.' }
   }).catch(() => ({ text: 'diff-fold could not switch; the diffs stay as they were.' }))
 
-  // Errors, ctrl+o and --verbose keep the engine's own drawing.
+  // Errors, ctrl+o and --verbose keep the engine's own drawing. Under the fullscreen layout the host reports rows
+  // as expanded that it draws folded, so `isExpanded` is read only on the main screen (shellcast reads it the same
+  // way); in fullscreen `/diff-fold` is the way to full diffs.
   on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
-    if (e.props.isErrored || e.props.isExpanded || !(await read($, isHiding))) return next(e)
+    if (!(TOOLS as readonly string[]).includes(e.props.tool)) return next(e)
+    const isFullscreen = e.viewport?.isFullscreen === true
+    const isExpanded = e.props.isExpanded === true
+    const keptBecause = e.props.isErrored ? 'errored' : isExpanded && !isFullscreen ? 'expanded' : !(await read($, isHiding)) ? 'switched off' : undefined
     const root = (await read($, startRoot)) ?? (await $.session.root())
-    const summary = summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    const summary = keptBecause ? undefined : summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    // Debug log only, never the transcript, and no content: the tool, the decision and the two facts it turns on.
+    const decision = summary
+      ? `folded, ${summary.files.length + summary.more} ${summary.files.length + summary.more === 1 ? 'file' : 'files'}`
+      : `in full, ${keptBecause ?? 'small or no change'}`
+    $.ui.log(`diff-fold: ${e.props.tool} ${decision} (isExpanded=${isExpanded}, fullscreen=${isFullscreen})`, { to: 'debug' })
     if (!summary) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)

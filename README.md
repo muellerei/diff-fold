@@ -14,7 +14,8 @@ _Drawn, not recorded._
 
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
 Small diffs, diffs held for your review and failed edits stay in full.
-To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full.
+To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full. Under the fullscreen layout ctrl+o keeps
+the summaries; switch with `/diff-fold` there.
 
 ## What it folds
 
@@ -43,7 +44,7 @@ Left in full:
 - a change of `smallDiffLines` lines or fewer (5 by default)
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
-- everything while the transcript is expanded (ctrl+o, `--verbose`)
+- everything while the transcript is expanded (ctrl+o, `--verbose`), on the main screen
 
 There is no line above the prompt and no key binding to set up.
 
