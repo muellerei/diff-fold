@@ -30,6 +30,10 @@ When a diff is not folded as expected, start Claude Code with `--debug-file <pat
 `isExpanded` and fullscreen values the decision turned on. Without a debug log the lines go nowhere. A render can run more than once
 per result (a scroll, a resize), so the same line may repeat.
 
+A Bash call that changed files but left no line usually came without `bashEditDiff`: Claude Code records the changed files only
+when `bashEditDiffEnabled` is on (see the README), and without them the hook was not called for the call at all (measured, Claude
+Code 2.1.314).
+
 ## Tests
 
 Pure modules have a test file each (`paths.test.ts`, `counts.test.ts`, `summary.test.ts`, `config.test.ts`). `register.test.tsx`

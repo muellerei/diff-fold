@@ -9,6 +9,9 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 - One summary line per file in place of the diff under Edit, Write, NotebookEdit and file-changing Bash calls, with the path
   relative to the project, the first changed line and the added and removed counts. Small diffs, diffs held for review, failed
   calls and the expanded transcript on the main screen stay in full.
+- A Bash call has a diff to fold only when Claude Code records the files it changed. Its setting `bashEditDiffEnabled`, in the
+  user settings, turns that on in every permission mode; it is optional, and without it the call shows no diff (measured in the
+  `acceptEdits` and `bypassPermissions` modes, Claude Code 2.1.314). The README explains it under "Bash commands".
 - `/diff-fold` switches between summaries and full diffs; the choice is kept across sessions.
 - Settings `smallDiffLines` and `icon`.
 - One line per decision in the debug log (`--debug-file`): folded or in full, why, and the `isExpanded` and fullscreen values.

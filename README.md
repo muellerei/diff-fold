@@ -19,25 +19,13 @@ the summaries; switch with `/diff-fold` there.
 
 ## What it folds
 
-| Tool                                                       | Summary                                                                               |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Edit                                                       | `Changed <path>:<line> (+N −M)`                                                       |
-| Write, new file                                            | `Created <path> (+N −0)`                                                              |
-| Write, existing file                                       | `Changed <path>:<line> (+N −M)`                                                       |
-| NotebookEdit                                               | `Changed <notebook> cell <id> (+N −M)`                                                |
-| Bash that changed files (`sed -i`, a heredoc, a generator) | the command's own output, then one line per file, up to three, and `and N more files` |
-
-A Bash call that changed five files ends like this:
-
-```text
-🔶 Changed src/a.ts:12 (+8 −8)
-🔶 Created src/b.ts (+40 −0)
-🔶 Deleted src/c.ts (+0 −22)
-🔶 and 2 more files
-```
-
-Which files a command changed comes from Claude Code itself, which attaches a diff of them to the Bash result. A command
-without that diff, or one Claude Code skipped, keeps its output as it is.
+| Tool                                                        | Summary                                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Edit                                                        | `Changed <path>:<line> (+N −M)`                                                       |
+| Write, new file                                             | `Created <path> (+N −0)`                                                              |
+| Write, existing file                                        | `Changed <path>:<line> (+N −M)`                                                       |
+| NotebookEdit                                                | `Changed <notebook> cell <id> (+N −M)`                                                |
+| Bash that changed files ([needs a setting](#bash-commands)) | the command's own output, then one line per file, up to three, and `and N more files` |
 
 Left in full:
 
@@ -47,6 +35,43 @@ Left in full:
 - everything while the transcript is expanded (ctrl+o, `--verbose`), on the main screen
 
 There is no line above the prompt and no key binding to set up.
+
+## Bash commands
+
+Edit, Write and NotebookEdit always come with a diff, so diff-fold folds them without any setup. A Bash command is different:
+Claude Code shows which files a command changed only when it records them. It may do that by itself in the `auto` and
+`bypassPermissions` modes, though not for every account, and its setting
+[`bashEditDiffEnabled`](https://code.claude.com/docs/en/settings-reference#basheditdiffenabled) makes it record them in every
+permission mode.
+
+| `bashEditDiffEnabled` | What a `sed -i` over three files shows                                        |
+| --------------------- | ----------------------------------------------------------------------------- |
+| off                   | the command's output only: there is no diff, so diff-fold has nothing to fold |
+| on, without diff-fold | the command's output, then the full diff of every changed file                |
+| on, with diff-fold    | the command's output, then one line per changed file                          |
+
+With the setting on, a Bash call that changed five files ends like this:
+
+```text
+🔶 Changed src/a.ts:12 (+8 −8)
+🔶 Created src/b.ts (+40 −0)
+🔶 Deleted src/c.ts (+0 −22)
+🔶 and 2 more files
+```
+
+To turn it on, add this line to your user settings, `~/.claude/settings.json`, and start a new session:
+
+```json
+"bashEditDiffEnabled": true
+```
+
+- It has to be the user settings (or settings your organization manages). Claude Code doesn't take this setting from a
+  project's `.claude/settings.json`.
+- The environment variable `CLAUDE_CODE_BASH_EDIT_DIFF=1` does the same and wins over the setting; `0` turns it off.
+- diff-fold can't turn it on for you: a mod has no way to change Claude Code's own settings.
+- The command's own output (test results, a listing) is never folded, only the diff of the files it changed.
+- Without the setting there was no diff here in the `acceptEdits` and the `bypassPermissions` mode alike (measured, Claude
+  Code 2.1.314).
 
 ## Switching
 
@@ -60,6 +85,8 @@ In `/config`, under the mod:
 | ---------------- | ------- | ------------------------------------------------------------------------------------ |
 | `smallDiffLines` | `5`     | Diffs with this many changed lines or fewer are shown in full. `0` folds every diff. |
 | `icon`           | `🔶`    | The mark at the start of each summary line. Empty for none.                          |
+
+For Bash commands Claude Code's own setting `bashEditDiffEnabled` matters too; see [Bash commands](#bash-commands).
 
 ## Install
 

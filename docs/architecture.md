@@ -27,4 +27,6 @@ The loader lets a module hand `$` only to functions of the same file, so the spl
 - Every result of a folding tool leaves one line in the debug log: the tool, folded or in full and why, `isExpanded` and
   fullscreen. Never in the transcript, never a path or text from the result.
 - A Bash result is handed on to the engine without its `bashEditDiff`, so the command's own output is drawn as the engine draws it.
+- `bashEditDiff` exists only when Claude Code records the changed files, which its setting `bashEditDiffEnabled` decides. A mod
+  can't set it (user or managed settings only), so diff-fold documents it instead of switching it.
 - State the drawing reads is in `$.state` (`types/index.d.ts`); the choice is also in `$.store`, so it outlives the session.
