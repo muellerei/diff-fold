@@ -7,7 +7,7 @@ import type { Register } from 'claude-code'
 import type { StartRoot } from '../types'
 import { settingsFrom } from './config'
 import { drawSummary } from './draw'
-import { summarize, touchesSensitiveFile, TOOLS, withoutEditDiff } from './summary'
+import { summarize, TOOLS, withoutEditDiff } from './summary'
 
 const COMMAND = 'diff-fold'
 const STORE_KEY = 'isHiding'
@@ -46,23 +46,21 @@ export const register: Register = (on, options) => {
     const isExpanded = e.props.isExpanded === true
     const keptBecause = e.props.isErrored ? 'errored' : isExpanded && !isFullscreen ? 'expanded' : !(await read($, isHiding)) ? 'switched off' : undefined
     const root = (await read($, startRoot)) ?? (await $.session.root())
-    const summary = keptBecause ? undefined : summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
-    const open = memberOf(isOpen, e)
-    const isOpened = summary !== undefined && isFullscreen && (await read($, open))
+    const result = keptBecause ?? summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    const summary = typeof result === 'string' ? undefined : result
+    const row = memberOf(isOpen, e)
+    const isRowOpen = summary !== undefined && isFullscreen && (await read($, row))
+    const fileCount = summary ? summary.files.length + summary.more : 0
     // Debug log only, never the transcript, and no content: the tool, the decision and the two facts it turns on.
-    const decision = isOpened
-      ? 'in full, opened'
-      : summary
-        ? `folded, ${summary.files.length + summary.more} ${summary.files.length + summary.more === 1 ? 'file' : 'files'}`
-        : `in full, ${keptBecause ?? (touchesSensitiveFile(e.props.tool, e.props.output) ? 'sensitive file' : 'small or no change')}`
+    const decision = isRowOpen ? 'in full, opened' : summary ? `folded, ${fileCount} ${fileCount === 1 ? 'file' : 'files'}` : `in full, ${result}`
     $.ui.log(`diff-fold: ${e.props.tool} ${decision} (isExpanded=${isExpanded}, fullscreen=${isFullscreen})`, { to: 'debug' })
     if (!summary) return next(e)
 
     const { Box, Button, Text } = $.ui.resolve(e)
     // Only under the fullscreen layout: there ctrl+o keeps the summaries and a click reaches the button. The main
     // screen reports no clicks, and ctrl+o already shows every diff there. No hotkey, so no key of a neighbour is taken.
-    const button = isFullscreen && <Button key="diff" plain label={isOpened ? '▾ hide diff' : '▸ show diff'} onPress={() => update($, open, value => !value)} />
-    if (isOpened)
+    const button = isFullscreen && <Button key="diff" plain label={isRowOpen ? '▾ hide diff' : '▸ show diff'} onPress={() => update($, row, value => !value)} />
+    if (isRowOpen)
       return (
         <Box flexDirection="column">
           {button}

@@ -8,6 +8,8 @@ import { relativeTo } from './paths'
 export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change }
 // A Bash command that changed more files than are listed ends in one line that counts the rest.
 export type Summary = { files: FileLine[]; more: number }
+// Why a result's diff stays in full, as the debug log names it.
+export type Kept = 'held for review' | 'sensitive file' | 'failed' | 'small or no change' | 'no diff' | 'unknown result'
 
 // A Bash command lists this many changed files; the rest are counted.
 export const MAX_FILES = 3
@@ -31,64 +33,71 @@ const SENSITIVE = /^(\.env.*|settings.*\.json|CLAUDE\.md|.*\.(pem|key)|id_(rsa|e
 const isSensitive = (path: unknown) => typeof path === 'string' && SENSITIVE.test(path.split(/[\\/]/).pop() ?? '')
 
 // Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
-export function touchesSensitiveFile(tool: string, output: unknown): boolean {
-  if (typeof output !== 'object' || output === null) return false
+function touchesSensitiveFile(tool: string, output: object): boolean {
   if (tool === 'Bash') return ((output as Shell).bashEditDiff?.files ?? []).some(file => isSensitive(file.filePath))
   return (tool === 'Edit' || tool === 'Write') && isSensitive((output as Patched).filePath)
 }
 
-// The summary for a finished call's result, or undefined where the diff is drawn in full: another tool, a result of
-// an unknown shape, a change held for review (the file is unchanged and the person has to see what is proposed), a
-// change to a sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer.
-export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | undefined {
-  if (typeof output !== 'object' || output === null || touchesSensitiveFile(tool, output)) return undefined
+// The summary for a finished call's result, or why its diff is drawn in full: another tool, a result of an unknown
+// shape, a change held for review (the file is unchanged and the person has to see what is proposed), a change to a
+// sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer.
+export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
+  if (typeof output !== 'object' || output === null) return 'unknown result'
+  if (touchesSensitiveFile(tool, output)) return 'sensitive file'
   const isSmall = (change: Change) => change.added + change.removed <= smallLines
-  const one = (line: FileLine | undefined) => (line?.change && !isSmall(line.change) ? { files: [line], more: 0 } : undefined)
+  const folded = (line: FileLine | Kept): Summary | Kept =>
+    typeof line === 'string' ? line : line.change && !isSmall(line.change) ? { files: [line], more: 0 } : 'small or no change'
 
   switch (tool) {
     case 'Edit':
-      return one(patchedLine(output as Patched, root))
+      return folded(patchedLine(output as Patched, root))
     case 'Write': {
       const written = output as Written
-      if (written.type !== 'create') return one(patchedLine(written, root))
-      if (written.staged || typeof written.filePath !== 'string') return undefined
-      return one({ verb: 'Created', where: relativeTo(written.filePath, root), change: { added: linesOf(written.content), removed: 0 } })
+      if (written.type !== 'create') return folded(patchedLine(written, root))
+      if (written.staged) return 'held for review'
+      if (typeof written.filePath !== 'string') return 'unknown result'
+      return folded({ verb: 'Created', where: relativeTo(written.filePath, root), change: { added: linesOf(written.content), removed: 0 } })
     }
     case 'NotebookEdit': {
       const notebook = output as Notebook
-      if (notebook.error || typeof notebook.notebook_path !== 'string') return undefined
+      if (notebook.error) return 'failed'
+      if (typeof notebook.notebook_path !== 'string') return 'unknown result'
       const cell = notebook.cell_id ? ` cell ${notebook.cell_id}` : ''
-      return one({ verb: 'Changed', where: relativeTo(notebook.notebook_path, root) + cell, change: countCell(notebook.old_source, notebook.new_source) })
+      return folded({ verb: 'Changed', where: relativeTo(notebook.notebook_path, root) + cell, change: countCell(notebook.old_source, notebook.new_source) })
     }
     case 'Bash':
       return shellSummary(output as Shell, root, isSmall)
     default:
-      return undefined
+      return 'unknown result'
   }
 }
 
+// `path` relative to `root`, and the line the change starts at where there is one.
+const located = (path: string, root: string, line: number | undefined) => relativeTo(path, root) + (line ? `:${line}` : '')
+
 // An Edit, or a Write over an existing file.
-function patchedLine(output: Patched, root: string): FileLine | undefined {
-  if (output.staged || typeof output.filePath !== 'string') return undefined
+function patchedLine(output: Patched, root: string): FileLine | Kept {
+  if (output.staged) return 'held for review'
+  if (typeof output.filePath !== 'string') return 'unknown result'
   // An empty patch means the diff timed out or the file was too large to diff; git's counts stand in.
   const change =
     !output.structuredPatch?.length && output.gitDiff
       ? { added: output.gitDiff.additions, removed: output.gitDiff.deletions }
       : countHunks(output.structuredPatch)
   const line = firstChangedLine(output.structuredPatch)
-  return { verb: 'Changed', where: relativeTo(output.filePath, root) + (line ? `:${line}` : ''), change }
+  return { verb: 'Changed', where: located(output.filePath, root, line), change }
 }
 
 // The files a shell command changed (sed -i, a heredoc, a generator), each on a line of its own. Judged small by the
 // lines of all of them together, so a command that touched many files a little is still summed up.
-function shellSummary(output: Shell, root: string, isSmall: (change: Change) => boolean): Summary | undefined {
+function shellSummary(output: Shell, root: string, isSmall: (change: Change) => boolean): Summary | Kept {
   const files = output.bashEditDiff?.files ?? []
-  if (files.length === 0) return undefined
+  if (files.length === 0) return 'no diff'
   const lines: FileLine[] = files.map(file => {
     const line = file.created || file.deleted ? undefined : firstChangedLine(file.hunks)
     return {
       verb: file.created ? 'Created' : file.deleted ? 'Deleted' : 'Changed',
-      where: relativeTo(file.filePath, root) + (line ? `:${line}` : ''),
+      where: located(file.filePath, root, line),
       change: countHunks(file.hunks),
     }
   })
@@ -98,7 +107,7 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
   const unlisted = [...new Set(output.bashEditDiff?.changedFiles ?? [])].filter((path): path is string => typeof path === 'string' && !listed.has(path))
   const named = unlisted.slice(0, moreFiles)
   lines.push(...named.map(path => ({ verb: 'Changed' as const, where: relativeTo(path, root) })))
-  if (isSmall(sum(lines.flatMap(line => line.change ?? [])))) return undefined
+  if (isSmall(sum(lines.flatMap(line => line.change ?? [])))) return 'small or no change'
   const shown = lines.slice(0, MAX_FILES)
   return { files: shown, more: lines.length - shown.length + moreFiles - named.length }
 }

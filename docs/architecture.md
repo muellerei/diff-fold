@@ -7,14 +7,14 @@ A map for reading the code. The reasons stay in the comments at the places named
 Only `hooks/register.tsx` talks to the host. Everything that judges, counts or formats is a pure module with no `$`, tested without a
 session:
 
-| Module         | Does                                                                                                                                                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `summary.ts`   | `summarize`: from a tool's result to the lines that replace its diff, or nothing where the diff stays in full. All rules about what is folded live here; whether a row is open is the host's state, in `register.tsx`. |
-| `counts.ts`    | Lines added and removed, the first changed line, a notebook cell's change.                                                                                                                                             |
-| `paths.ts`     | `relativeTo`: a path relative to the project root, on Windows too.                                                                                                                                                     |
-| `config.ts`    | The settings from `plugin.json`, with their defaults.                                                                                                                                                                  |
-| `draw.tsx`     | How a summary is drawn, given the elements of the surface.                                                                                                                                                             |
-| `register.tsx` | The hooks: `session.start` registers `/diff-fold` and restores the choice, `command.run` switches it, `ui.render` on `ToolResult` draws the summary and, under the fullscreen layout, the **show diff** button.        |
+| Module         | Does                                                                                                                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `summary.ts`   | `summarize`: from a tool's result to the lines that replace its diff, or why the diff stays in full (the reason the debug log names). All rules about what is folded live here; whether a row is open is the host's state, in `register.tsx`. |
+| `counts.ts`    | Lines added and removed, the first changed line, a notebook cell's change.                                                                                                                                                                    |
+| `paths.ts`     | `relativeTo`: a path relative to the project root, on Windows too.                                                                                                                                                                            |
+| `config.ts`    | The settings from `plugin.json`, with their defaults.                                                                                                                                                                                         |
+| `draw.tsx`     | How a summary is drawn, given the elements of the surface.                                                                                                                                                                                    |
+| `register.tsx` | The hooks: `session.start` registers `/diff-fold` and restores the choice, `command.run` switches it, `ui.render` on `ToolResult` draws the summary and, under the fullscreen layout, the **show diff** button.                               |
 
 The loader lets a module hand `$` only to functions of the same file, so the split follows that line: the host stays in
 `register.tsx`, the rest takes plain values.
