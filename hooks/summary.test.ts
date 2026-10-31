@@ -112,6 +112,25 @@ test('Bash: a command that changed no files, or whose diff the host skipped, is 
   expect(summarize('Bash', { bashEditDiff: { files: [], moreFiles: 0, skipped: true } }, ROOT, 0)).toBe('no diff')
 })
 
+test('control and bidi characters in a name are shown escaped, so a name cannot pose as another or move the cursor', async () => {
+  const where = (output: unknown, tool = 'Edit') => folded(summarize(tool, output, ROOT, 5)).files.map(file => file.where)
+  expect(where(editOutput('/repo/report\u202efdp.ts', 6))).toEqual(['report\\u202efdp.ts:12'])
+  expect(where(editOutput('/repo/a\u2066b\u200fc\u061cd.ts', 6))).toEqual(['a\\u2066b\\u200fc\\u061cd.ts:12'])
+  expect(where({ bashEditDiff: { files: [shellFile('/repo/x\x1b[31mred.ts', 9)], moreFiles: 0 } }, 'Bash')).toEqual(['x\\x1b[31mred.ts:4'])
+  expect(where({ bashEditDiff: { files: [shellFile('/repo/a.ts', 9)], moreFiles: 1, changedFiles: ['/repo/b\x7f\x9b.bin'] } }, 'Bash')).toEqual([
+    'a.ts:4',
+    'b\\x7f\\x9b.bin',
+  ])
+  const cell = { notebook_path: '/repo/n\n.ipynb', cell_id: 'c\r1', old_source: 'a', new_source: 'b\nc\nd\ne\nf\ng' }
+  expect(where(cell, 'NotebookEdit')).toEqual(['n\\x0a.ipynb cell c\\x0d1'])
+  expect(where({ type: 'create', filePath: '/repo/t\tab.ts', content: 'a\n'.repeat(9) }, 'Write')).toEqual(['t\\x09ab.ts'])
+})
+
+test('other characters in a name stay as they are: umlauts, CJK, emoji, a Windows path', async () => {
+  const where = (path: string) => folded(summarize('Edit', editOutput(path, 6), 'C:\\repo', 5)).files[0]?.where
+  expect(where('C:\\repo\\src\\Übersicht 日本 🔶.ts')).toBe('src\\Übersicht 日本 🔶.ts:12')
+})
+
 test('a sensitive file is left whole however large its change: .env files, settings JSON, CLAUDE.md, keys', async () => {
   for (const path of [
     '/repo/.env',
