@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { MAX_FILES, summarize, withoutEditDiff, type Kept, type Summary } from './summary'
+import { MAX_FILES, summarize, withOnlyFiles, withoutEditDiff, type Kept, type Summary } from './summary'
 import { editInPlaces, editOutput, shellFile } from './test-support'
 
 const ROOT = '/repo'
@@ -295,10 +295,42 @@ test('a folder or a look-alike name is folded as usual', async () => {
   }
 })
 
-test('Bash: one sensitive file among those a command changed leaves the whole diff in full', async () => {
-  const output = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9), shellFile('/repo/.env', 1)], moreFiles: 0 } }
-  expect(summarize('Bash', output, ROOT, 5)).toBe('sensitive file')
-  expect(summarize('Bash', { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)] } }, ROOT, 5)).toHaveProperty('files')
+test('Bash: a sensitive file among others is left to the engine in full, the other files are summed up', async () => {
+  const lock = shellFile('/repo/package-lock.json', 22, { created: true })
+  const npm = {
+    bashEditDiff: { files: [shellFile('/repo/package.json', 8), lock], moreFiles: 0, changedFiles: ['/repo/package.json', '/repo/package-lock.json'] },
+  }
+  expect(summarize('Bash', npm, ROOT, 5)).toEqual({
+    files: [{ verb: 'Created', where: 'package-lock.json', change: { added: 22, removed: 0 } }],
+    more: 0,
+    fullPaths: ['/repo/package.json'],
+    fullBecause: 'sensitive file',
+  })
+  const env = {
+    bashEditDiff: { files: [shellFile('/repo/.env', 1), shellFile('/repo/a.ts', 9), shellFile('/repo/b.ts', 9), shellFile('/repo/c.ts', 9)], moreFiles: 0 },
+  }
+  const summary = folded(summarize('Bash', env, ROOT, 5))
+  expect(summary.fullPaths).toEqual(['/repo/.env'])
+  expect(summary.files.map(file => file.where)).toEqual(['a.ts:4', 'b.ts:4', 'c.ts:4'])
+})
+
+test('Bash: only sensitive files, or a small rest beside them, leave the whole diff in full', async () => {
+  const sensitive = { bashEditDiff: { files: [shellFile('/repo/.env', 9), shellFile('/repo/package.json', 9)], moreFiles: 0 } }
+  expect(summarize('Bash', sensitive, ROOT, 5)).toBe('sensitive file')
+  const smallRest = { bashEditDiff: { files: [shellFile('/repo/.env', 9), shellFile('/repo/a.ts', 3)], moreFiles: 0 } }
+  expect(summarize('Bash', smallRest, ROOT, 5)).toBe('small or no change')
+  expect(summarize('Bash', { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)] } }, ROOT, 5)).not.toHaveProperty('fullPaths')
+})
+
+test('withOnlyFiles keeps the shell result with the diff of just these files, as the engine draws a shorter list', async () => {
+  const output = {
+    stdout: 'ok',
+    bashEditDiff: { files: [shellFile('/repo/.env', 1), shellFile('/repo/a.ts', 9)], moreFiles: 2, changedFiles: ['/repo/.env', '/repo/a.ts', '/repo/x.png'] },
+  }
+  expect(withOnlyFiles(output, ['/repo/.env'])).toEqual({
+    stdout: 'ok',
+    bashEditDiff: { files: [shellFile('/repo/.env', 1)], moreFiles: 0, changedFiles: ['/repo/.env'] },
+  })
 })
 
 test('another tool, or a result that is no object, is no summary', async () => {

@@ -9,7 +9,9 @@ import { relativeTo } from './paths'
 // `whitespaceOnly` is set only when the change moves nothing but whitespace, so a reindent does not pass for an edit.
 export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change; places?: number; whitespaceOnly?: true }
 // A Bash command that changed more files than are listed ends in one line that counts the rest.
-export type Summary = { files: FileLine[]; more: number }
+// A Bash command that changed a sensitive file among others also names the files whose diff the engine draws in full
+// (`fullPaths`, as the host names them) and why (`fullBecause`); `files` and `more` count only the rest.
+export type Summary = { files: FileLine[]; more: number; fullPaths?: string[]; fullBecause?: Kept }
 // Why a result's diff stays in full, as the debug log names it.
 export type Kept = 'held for review' | 'sensitive file' | 'failed' | 'small or no change' | 'no diff' | 'unknown result'
 
@@ -102,7 +104,8 @@ export function summarize(tool: string, output: unknown, root: string, smallLine
 
 function summed(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
   if (typeof output !== 'object' || output === null) return 'unknown result'
-  if (touchesSensitiveFile(tool, output)) return 'sensitive file'
+  // A shell command can change a sensitive file among others; it is split per file in `shellSummary` instead.
+  if (tool !== 'Bash' && touchesSensitiveFile(tool, output)) return 'sensitive file'
   const isSmall = (change: Change) => change.added + change.removed <= smallLines
   const folded = (line: FileLine | Kept): Summary | Kept =>
     typeof line === 'string' ? line : line.change && !isSmall(line.change) ? { files: [line], more: 0 } : 'small or no change'
@@ -157,10 +160,16 @@ function patchedLine(output: Patched, root: string): FileLine | Kept {
 }
 
 // The files a shell command changed (sed -i, a heredoc, a generator), each on a line of its own. Judged small by the
-// lines of all of them together, so a command that touched many files a little is still summed up.
+// lines of all of them together, so a command that touched many files a little is still summed up. A sensitive file
+// among them keeps its diff, drawn by the engine, and only the others are summed up: `npm install` changes
+// package.json and the lockfile, and the lockfile's diff is no reason to show both in full. When every file is
+// sensitive, or the rest is small, the whole diff stays.
 function shellSummary(output: Shell, root: string, isSmall: (change: Change) => boolean): Summary | Kept {
-  const files = output.bashEditDiff?.files ?? []
-  if (files.length === 0) return 'no diff'
+  const all = output.bashEditDiff?.files ?? []
+  if (all.length === 0) return 'no diff'
+  const full = all.filter(file => isSensitive(file.filePath))
+  if (full.length === all.length) return 'sensitive file'
+  const files = all.filter(file => !full.includes(file))
   const lines: FileLine[] = files.map(file => {
     const changed = !file.created && !file.deleted
     return {
@@ -172,13 +181,24 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
   })
   // The files the host counted but has no diff for, named where `changedFiles` has them, no more than it counted.
   const moreFiles = output.bashEditDiff?.moreFiles ?? 0
-  const listed = new Set(files.map(file => file.filePath))
+  const listed = new Set(all.map(file => file.filePath))
   const unlisted = [...new Set(output.bashEditDiff?.changedFiles ?? [])].filter((path): path is string => typeof path === 'string' && !listed.has(path))
   const named = unlisted.slice(0, moreFiles)
   lines.push(...named.map(path => ({ verb: 'Changed' as const, where: relativeTo(path, root) })))
   if (isSmall(sum(lines.flatMap(line => line.change ?? [])))) return 'small or no change'
   const shown = lines.slice(0, MAX_FILES)
-  return { files: shown, more: lines.length - shown.length + moreFiles - named.length }
+  const rest = { files: shown, more: lines.length - shown.length + moreFiles - named.length }
+  return full.length ? { ...rest, fullPaths: full.map(file => file.filePath), fullBecause: 'sensitive file' } : rest
+}
+
+// A Bash result with the diff of only these files, for the engine to draw them in full above the summary. The host
+// draws such a shortened list as it is (measured, Claude Code 2.1.316); `moreFiles` is 0, since the summary counts the
+// files it leaves out.
+export function withOnlyFiles(output: unknown, paths: readonly string[]): unknown {
+  if (typeof output !== 'object' || output === null) return output
+  const shell = output as Shell
+  const files = (shell.bashEditDiff?.files ?? []).filter(file => paths.includes(file.filePath))
+  return { ...output, bashEditDiff: { ...shell.bashEditDiff, files, moreFiles: 0, changedFiles: files.map(file => file.filePath) } }
 }
 
 // A Bash result without the per-file diff, for the engine to draw the command's own output.

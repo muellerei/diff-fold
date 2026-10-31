@@ -77,7 +77,8 @@ Left in full:
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
 - a change to a sensitive file, however large, in upper or lower case alike. A Bash command that changed one of them among
-  others shows its whole diff.
+  others shows that file's diff in full and sums up the others, so `npm install` shows the change to `package.json` and one
+  line for the lockfile. When the others add up to `smallDiffLines` lines or fewer, the whole diff stays.
   - secrets and credentials: `.env*`, `.npmrc`, `.netrc`, `.pypirc`, keys (`*.pem`, `*.key`, `id_rsa*`, `id_ecdsa*`,
     `id_ed25519*`) and anything in `.ssh/`
   - what runs on its own, as a side effect of committing, installing or opening the folder: `.git*` files such as

@@ -25,12 +25,14 @@ function host(on: On, { root = '/repo', stored, storeFails }: { root?: string; s
     store.set(e.key, e.value)
     return { value: undefined }
   })
+  const drawn: unknown[] = []
   on('ui.render', { component: 'ToolResult' }, ($, e) => {
+    drawn.push(e.props.output)
     const output = e.props.output as { stdout?: string; bashEditDiff?: unknown }
     const text = e.props.tool === 'Bash' ? `${output.stdout}${output.bashEditDiff ? ' with diff' : ''}` : 'full diff'
     return h($.ui.resolve(e).Text, {}, text) as RenderElement
   })
-  return { store, logs, moveRoot: (to: string) => (currentRoot = to) }
+  return { store, logs, drawn, moveRoot: (to: string) => (currentRoot = to) }
 }
 
 const start = ($: Engine) => $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
@@ -120,6 +122,19 @@ test('a shell command keeps its own output, drawn without the diff, and lists ea
   expect(await ui.find({ text: '🔶 Changed a.ts:4 (+3 −0)' })).toBeDefined()
   expect(await ui.find({ text: '🔶 Created b.ts (+3 −0)' })).toBeDefined()
   expect(await ui.find({ text: '🔶 and 1 more file' })).toBeDefined()
+})
+
+test('a shell command that changed a sensitive file leaves its diff to the engine and sums up the rest', async ($, on) => {
+  const { drawn, logs } = host(on)
+  await start($)
+  const files = [shellFile('/repo/package.json', 8), shellFile('/repo/package-lock.json', 22, { created: true })]
+  const changedFiles = ['/repo/package.json', '/repo/package-lock.json']
+  const ui = await mount($, 'Bash', { stdout: 'added 1 package', bashEditDiff: { files, moreFiles: 0, changedFiles } })
+
+  expect(await ui.find({ text: 'added 1 package with diff' })).toBeDefined()
+  expect(await ui.find({ text: '🔶 Created package-lock.json (+22 −0)' })).toBeDefined()
+  expect(drawn.at(-1)).toEqual({ stdout: 'added 1 package', bashEditDiff: { files: [files[0]], moreFiles: 0, changedFiles: ['/repo/package.json'] } })
+  expect(logs.at(-1)?.text).toBe('diff-fold: Bash folded, 1 file, 1 in full (sensitive file) (isExpanded=false, fullscreen=false)')
 })
 
 test('the command switches to full diffs and back, says which, and keeps the choice in the store', async ($, on) => {

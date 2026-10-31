@@ -24,6 +24,10 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
   `GEMINI.md` and `.github/copilot-instructions.md`. The rule behind the list is now written down next to it: a change
   acts without anyone reading it, because the file holds a secret, runs as a side effect of a routine command, or is
   read by an agent as instructions. `pyproject.toml`, `conftest.py` and lockfiles stay out.
+- A Bash command that changed a sensitive file among others shows that file's diff in full and sums up the rest. Until
+  now one sensitive file kept the whole diff, so with `package.json` on the list every `npm install` would have shown the
+  lockfile in full. When every file is sensitive, or the rest is small, the whole diff still stays. The debug log says
+  `folded, 1 file, 1 in full (sensitive file)`.
 - A NotebookEdit is checked against the sensitive files too. Until now only Edit, Write and Bash were, so a notebook
   inside `.claude/skills/` or `.github/workflows/` was folded.
 - The README and the debugging notes say that Claude Code records the files a Bash command changed only inside a git
