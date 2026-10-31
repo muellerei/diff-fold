@@ -80,10 +80,16 @@ Left in full:
   others shows its whole diff.
   - secrets and credentials: `.env*`, `.npmrc`, `.netrc`, `.pypirc`, keys (`*.pem`, `*.key`, `id_rsa*`, `id_ecdsa*`,
     `id_ed25519*`) and anything in `.ssh/`
-  - what runs on its own: `.git*` files such as `.gitattributes` and `.gitlab-ci.yml`, anything in `.git/`, `.husky/`,
-    `.github/workflows/` and `.github/actions/`, `.mcp.json` and `hooks.json`
-  - what steers Claude or another agent: `settings*.json`, `CLAUDE.md`, `AGENTS.md`, and in `.claude/` the folders `agents`,
-    `commands`, `skills`, `hooks`, `rules` and `output-styles`
+  - what runs on its own, as a side effect of committing, installing or opening the folder: `.git*` files such as
+    `.gitattributes` and `.gitlab-ci.yml`, anything in `.git/`, `.husky/`, `.github/workflows/`, `.github/actions/` and
+    `.devcontainer/`, `.pre-commit-config.yaml`, lefthook and mise configuration, `package.json` (its install scripts),
+    `setup.py`, `.vscode/tasks.json`, `.devcontainer.json`, `.mcp.json` and `hooks.json`
+  - what steers Claude or another agent: `settings*.json`, `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
+    `.github/copilot-instructions.md`, and in `.claude/` the folders `agents`, `commands`, `skills`, `hooks`, `rules` and
+    `output-styles`
+
+  The rule for the list: a change to the file acts without anyone reading it. Configuration that runs nothing itself, such
+  as `pyproject.toml`, and lockfiles are folded.
 
   A file is matched on its name, a folder on its path: a folder named `.env` or a file `settings.ts` is folded as usual, and so
   are Claude's own notes such as `.claude/plans/`

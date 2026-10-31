@@ -27,15 +27,24 @@ type Shell = { bashEditDiff?: { files?: ShellFile[]; moreFiles?: number; changed
 // The tools whose result shows a diff that this mod can sum up.
 export const TOOLS = ['Edit', 'Write', 'NotebookEdit', 'Bash'] as const
 
-// Files whose change is shown whole however large it is, because a summary line would hide what a change to them does:
-// secrets and credentials (.env files, keys, .npmrc), what runs on its own (git's own files, CI configuration, MCP
-// servers, plugin hooks) and what steers Claude Code, Claude or another agent (settings JSON, CLAUDE.md, AGENTS.md).
-// Matched on the file name, so a folder named `.env` or a file `settings.ts` is folded as usual.
+// Files whose change is shown whole however large it is, because a summary line would hide what a change to them does.
+// A file belongs here when a change to it acts without anyone reading it: it holds a secret (.env files, keys,
+// .npmrc), it runs as a side effect of a routine command (installing: package.json scripts, setup.py; committing:
+// git's own files, pre-commit, lefthook, husky; opening or entering the folder: VS Code tasks, dev containers, mise
+// hooks; CI and MCP servers), or an agent reads it as instructions (settings JSON, CLAUDE.md, AGENTS.md, GEMINI.md,
+// Copilot's instructions). Left out on purpose: configuration that runs nothing itself (pyproject.toml), code that runs
+// only under the command it belongs to (conftest.py, like any test file), and lockfiles. What a project finds delicate
+// beyond that is its own list to keep. Matched on the file name, so a folder named `.env` or a file `settings.ts` is
+// folded as usual.
 const SENSITIVE_NAME =
-  /^(\.env.*|\.git.*|\.npmrc|\.netrc|\.pypirc|\.mcp\.json|hooks\.json|settings.*\.json|CLAUDE\.md|AGENTS\.md|.*\.(pem|key)|id_(rsa|ecdsa|ed25519).*)$/i
-// The same for every file in these folders: git's own and its hooks, CI workflows and actions, SSH, and the parts of
-// `.claude` that steer Claude. `.claude/plans`, `.claude/projects` and the like are Claude's own notes and are folded.
-const SENSITIVE_DIR = /(^|\/)(\.git|\.husky|\.ssh|\.github\/(workflows|actions)|\.claude\/(agents|commands|skills|hooks|rules|output-styles))\//i
+  /^(\.env.*|\.git.*|\.npmrc|\.netrc|\.pypirc|\.mcp\.json|hooks\.json|settings.*\.json|CLAUDE\.md|AGENTS\.md|GEMINI\.md|package\.json|setup\.py|\.pre-commit-config\.ya?ml|\.?lefthook(-local)?\.(ya?ml|toml|jsonc?)|\.?mise(\.local)?\.toml|\.devcontainer\.json|.*\.(pem|key)|id_(rsa|ecdsa|ed25519).*)$/i
+// The same for every file in these folders: git's own and its hooks, CI workflows and actions, SSH, dev containers,
+// and the parts of `.claude` that steer Claude. `.claude/plans`, `.claude/projects` and the like are Claude's own notes
+// and are folded.
+const SENSITIVE_DIR = /(^|\/)(\.git|\.husky|\.ssh|\.devcontainer|\.github\/(workflows|actions)|\.claude\/(agents|commands|skills|hooks|rules|output-styles))\//i
+// And these files only in their folder: a `tasks.json` elsewhere is no VS Code task, a `copilot-instructions.md`
+// elsewhere steers nothing.
+const SENSITIVE_PATH = /(^|\/)(\.vscode\/tasks\.json|\.github\/copilot-instructions\.md)$/i
 
 // Files in which whitespace carries meaning, so a change to it is never called whitespace only: indentation is structure
 // (Python, YAML, CoffeeScript, Haskell, F#, Nim, Elm, Pug, Haml, Slim, Sass, Stylus), a tab is syntax or a separator
@@ -50,13 +59,20 @@ const fileName = (path: string) => path.replace(/\\/g, '/').split('/').pop() ?? 
 const isSensitive = (path: unknown) => {
   if (typeof path !== 'string') return false
   const slashed = path.replace(/\\/g, '/')
-  return SENSITIVE_NAME.test(fileName(slashed)) || SENSITIVE_DIR.test(slashed)
+  return SENSITIVE_NAME.test(fileName(slashed)) || SENSITIVE_DIR.test(slashed) || SENSITIVE_PATH.test(slashed)
+}
+
+// The files a result changed, as the host names them: one for Edit, Write and NotebookEdit, each file with a diff for a
+// shell command. A Bash file without a diff (only in `changedFiles`) is left out: there is no diff to show in full.
+function changedPaths(tool: string, output: object): unknown[] {
+  if (tool === 'Bash') return ((output as Shell).bashEditDiff?.files ?? []).map(file => file.filePath)
+  if (tool === 'NotebookEdit') return [(output as Notebook).notebook_path]
+  return tool === 'Edit' || tool === 'Write' ? [(output as Patched).filePath] : []
 }
 
 // Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
 function touchesSensitiveFile(tool: string, output: object): boolean {
-  if (tool === 'Bash') return ((output as Shell).bashEditDiff?.files ?? []).some(file => isSensitive(file.filePath))
-  return (tool === 'Edit' || tool === 'Write') && isSensitive((output as Patched).filePath)
+  return changedPaths(tool, output).some(isSensitive)
 }
 
 // Characters that change how a line reads instead of being read: C0 and C1 controls with DEL (an escape sequence

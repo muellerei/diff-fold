@@ -233,6 +233,51 @@ test('also left whole: what runs on its own, what holds credentials, and what st
   }
 })
 
+test('also left whole: what runs as a side effect of installing, committing or opening the folder, and other agents\u2019 instructions', async () => {
+  for (const path of [
+    '/repo/package.json',
+    '/repo/setup.py',
+    '/repo/.pre-commit-config.yaml',
+    '/repo/.pre-commit-config.yml',
+    '/repo/lefthook.yml',
+    '/repo/.lefthook.toml',
+    '/repo/lefthook-local.jsonc',
+    '/repo/.config/lefthook.yml',
+    '/repo/mise.toml',
+    '/repo/.mise.local.toml',
+    '/repo/.vscode/tasks.json',
+    '/repo/.devcontainer/devcontainer.json',
+    '/repo/.devcontainer/Dockerfile',
+    '/repo/.devcontainer.json',
+    '/repo/GEMINI.md',
+    '/repo/.github/copilot-instructions.md',
+    '/repo/PACKAGE.JSON',
+    'C:\\repo\\.vscode\\tasks.json',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toBe('sensitive file')
+  }
+})
+
+test('left out of the fixed list on purpose: configuration that runs nothing itself, lockfiles, look-alikes', async () => {
+  for (const path of [
+    '/repo/pyproject.toml',
+    '/repo/tests/conftest.py',
+    '/repo/package-lock.json',
+    '/repo/tasks.json',
+    '/repo/lefthookx.yml',
+    '/repo/docs/copilot-instructions.md',
+    '/repo/src/package.json.ts',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toHaveProperty('files')
+  }
+})
+
+test('NotebookEdit: a notebook in a sensitive folder is left whole, elsewhere it is folded', async () => {
+  const notebook = (path: string) => ({ notebook_path: path, cell_id: 'c1', old_source: 'a', new_source: 'b\n'.repeat(9) })
+  expect(summarize('NotebookEdit', notebook('/repo/.claude/skills/x/demo.ipynb'), ROOT, 5)).toBe('sensitive file')
+  expect(summarize('NotebookEdit', notebook('/repo/notebooks/a.ipynb'), ROOT, 5)).toHaveProperty('files')
+})
+
 test('a folder or a look-alike name is folded as usual', async () => {
   for (const path of [
     '/repo/.env/notes.ts',
