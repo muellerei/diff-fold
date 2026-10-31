@@ -22,8 +22,8 @@ The loader lets a module hand `$` only to functions of the same file, so the spl
 ## Rules a change keeps
 
 - diff-fold draws only `ToolResult`. Tool rows, grouped rows and the area above the prompt belong to the engine and to other mods.
-- Anything held for review (`staged`), failed, touching a sensitive file (`touchesSensitiveFile`), or expanded (`isExpanded`) is
-  drawn by the engine. A Bash command splits per file: the engine draws the sensitive files' diffs (`withOnlyFiles`), the
+- Anything held for review (`staged`), failed, touching a sensitive file or one the keepFull setting names (`fullReason`), or expanded (`isExpanded`) is
+  drawn by the engine. A Bash command splits per file: the engine draws the diffs of the files that stay in full (`withOnlyFiles`), the
   summary names the rest. `isExpanded` counts on the main
   screen only: under the fullscreen layout the host reports rows as expanded that it draws folded.
 - Every result of a folding tool leaves one line in the debug log: the tool, folded or in full and why, `isExpanded` and

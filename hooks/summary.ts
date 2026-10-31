@@ -13,7 +13,7 @@ export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string;
 // (`fullPaths`, as the host names them) and why (`fullBecause`); `files` and `more` count only the rest.
 export type Summary = { files: FileLine[]; more: number; fullPaths?: string[]; fullBecause?: Kept }
 // Why a result's diff stays in full, as the debug log names it.
-export type Kept = 'held for review' | 'sensitive file' | 'failed' | 'small or no change' | 'no diff' | 'unknown result'
+export type Kept = 'held for review' | 'sensitive file' | 'kept by setting' | 'failed' | 'small or no change' | 'no diff' | 'unknown result'
 
 // A Bash command lists this many changed files; the rest are counted.
 export const MAX_FILES = 3
@@ -72,11 +72,6 @@ function changedPaths(tool: string, output: object): unknown[] {
   return tool === 'Edit' || tool === 'Write' ? [(output as Patched).filePath] : []
 }
 
-// Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
-function touchesSensitiveFile(tool: string, output: object): boolean {
-  return changedPaths(tool, output).some(isSensitive)
-}
-
 // Characters that change how a line reads instead of being read: C0 and C1 controls with DEL (an escape sequence
 // can recolour or move the cursor, a newline breaks the line) and the bidi marks, embeddings, overrides and
 // isolates (a name holding U+202E, `report\u202efdp.ts`, reads as `reportst.pdf`). Claude Code 2.1.316 turned the
@@ -95,17 +90,32 @@ function readable(where: string): string {
 
 // The summary for a finished call's result, or why its diff is drawn in full: another tool, a result of an unknown
 // shape, a change held for review (the file is unchanged and the person has to see what is proposed), a change to a
-// sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer. Every name in it is readable,
-// whichever tool it came from.
-export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
-  const summary = summed(tool, output, root, smallLines)
+// sensitive file, a file the keepFull setting names (`isKept`, asked with the path relative to `root`), a failed
+// notebook edit, and a change of `smallLines` lines or fewer. Every name in it is readable, whichever tool it came from.
+export function summarize(tool: string, output: unknown, root: string, smallLines: number, isKept: IsKept = () => false): Summary | Kept {
+  const summary = summed(tool, output, root, smallLines, isKept)
   return typeof summary === 'string' ? summary : { ...summary, files: summary.files.map(file => ({ ...file, where: readable(file.where) })) }
 }
 
-function summed(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
+type IsKept = (relativePath: string) => boolean
+
+// Why a file stays in full, if it does. The fixed list is matched on the path as it comes, so `.ssh/` counts outside the
+// project too; keepFull on the path inside the project, so `src/` does not match a parent folder that happens to be
+// named `src`. Keep the two apart.
+function fullReason(path: unknown, root: string, isKept: IsKept): Kept | undefined {
+  if (isSensitive(path)) return 'sensitive file'
+  return typeof path === 'string' && isKept(relativeTo(path, root)) ? 'kept by setting' : undefined
+}
+
+function summed(tool: string, output: unknown, root: string, smallLines: number, isKept: IsKept): Summary | Kept {
   if (typeof output !== 'object' || output === null) return 'unknown result'
   // A shell command can change a sensitive file among others; it is split per file in `shellSummary` instead.
-  if (tool !== 'Bash' && touchesSensitiveFile(tool, output)) return 'sensitive file'
+  if (tool !== 'Bash') {
+    const reason = changedPaths(tool, output)
+      .map(path => fullReason(path, root, isKept))
+      .find(Boolean)
+    if (reason) return reason
+  }
   const isSmall = (change: Change) => change.added + change.removed <= smallLines
   const folded = (line: FileLine | Kept): Summary | Kept =>
     typeof line === 'string' ? line : line.change && !isSmall(line.change) ? { files: [line], more: 0 } : 'small or no change'
@@ -128,7 +138,7 @@ function summed(tool: string, output: unknown, root: string, smallLines: number)
       return folded({ verb: 'Changed', where: relativeTo(notebook.notebook_path, root) + cell, change: countCell(notebook.old_source, notebook.new_source) })
     }
     case 'Bash':
-      return shellSummary(output as Shell, root, isSmall)
+      return shellSummary(output as Shell, root, isSmall, isKept)
     default:
       return 'unknown result'
   }
@@ -160,15 +170,17 @@ function patchedLine(output: Patched, root: string): FileLine | Kept {
 }
 
 // The files a shell command changed (sed -i, a heredoc, a generator), each on a line of its own. Judged small by the
-// lines of all of them together, so a command that touched many files a little is still summed up. A sensitive file
-// among them keeps its diff, drawn by the engine, and only the others are summed up: `npm install` changes
-// package.json and the lockfile, and the lockfile's diff is no reason to show both in full. When every file is
-// sensitive, or the rest is small, the whole diff stays.
-function shellSummary(output: Shell, root: string, isSmall: (change: Change) => boolean): Summary | Kept {
+// lines of all of them together, so a command that touched many files a little is still summed up. A file that stays in
+// full (sensitive, or named by keepFull) keeps its diff, drawn by the engine, and only the others are summed up: `npm
+// install` changes package.json and the lockfile, and the lockfile's diff is no reason to show both in full. When every
+// file stays in full, or the rest is small, the whole diff stays.
+function shellSummary(output: Shell, root: string, isSmall: (change: Change) => boolean, isKept: IsKept): Summary | Kept {
   const all = output.bashEditDiff?.files ?? []
   if (all.length === 0) return 'no diff'
-  const full = all.filter(file => isSensitive(file.filePath))
-  if (full.length === all.length) return 'sensitive file'
+  const reasons = all.map(file => fullReason(file.filePath, root, isKept))
+  const full = all.filter((_, i) => reasons[i])
+  const fullBecause: Kept = reasons.includes('sensitive file') ? 'sensitive file' : 'kept by setting'
+  if (full.length === all.length) return fullBecause
   const files = all.filter(file => !full.includes(file))
   const lines: FileLine[] = files.map(file => {
     const changed = !file.created && !file.deleted
@@ -188,7 +200,7 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
   if (isSmall(sum(lines.flatMap(line => line.change ?? [])))) return 'small or no change'
   const shown = lines.slice(0, MAX_FILES)
   const rest = { files: shown, more: lines.length - shown.length + moreFiles - named.length }
-  return full.length ? { ...rest, fullPaths: full.map(file => file.filePath), fullBecause: 'sensitive file' } : rest
+  return full.length ? { ...rest, fullPaths: full.map(file => file.filePath), fullBecause } : rest
 }
 
 // A Bash result with the diff of only these files, for the engine to draw them in full above the summary. The host

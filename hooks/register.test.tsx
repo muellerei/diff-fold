@@ -137,6 +137,15 @@ test('a shell command that changed a sensitive file leaves its diff to the engin
   expect(logs.at(-1)?.text).toBe('diff-fold: Bash folded, 1 file, 1 in full (sensitive file) (isExpanded=false, fullscreen=false)')
 })
 
+test('a file the keepFull setting names is left to the engine, and the debug log says why', { options: { keepFull: 'migrations/' } }, async ($, on) => {
+  const { logs } = host(on)
+  await start($)
+  const ui = await mount($, 'Edit', editOutput('/repo/db/migrations/1.sql', 9))
+  expect(await ui.find({ text: 'full diff' })).toBeDefined()
+  expect(logs.at(-1)?.text).toBe('diff-fold: Edit in full, kept by setting (isExpanded=false, fullscreen=false)')
+  expect(await (await mount($, 'Edit', editOutput('/repo/src/a.ts', 9))).find({ text: 'full diff' })).toBeUndefined()
+})
+
 test('the command switches to full diffs and back, says which, and keeps the choice in the store', async ($, on) => {
   const { store } = host(on)
   await start($)

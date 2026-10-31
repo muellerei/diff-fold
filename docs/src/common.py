@@ -2,6 +2,7 @@
 # and the workflow against them, so none of them can drift on its own.
 SMALL_DIFF_LINES = 5      # default of the smallDiffLines setting
 ICON = '🔶'               # default of the icon setting
+KEEP_FULL = []            # default of the keepFull setting, shown as "none" in the README
 TESTED_WITH = '2.1.314'   # the Claude Code the mod is tested with (README, Install; first entry of the CI matrix)
 
 HEAD = '''  <rect width="{W}" height="{H}" rx="10" fill="#0d1117"/>

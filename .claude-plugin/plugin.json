@@ -24,6 +24,13 @@
       "title": "Icon",
       "description": "Shown at the start of each summary line, so a hidden diff is easy to spot. Leave empty for none.",
       "default": "🔶"
+    },
+    "keepFull": {
+      "type": "string",
+      "multiple": true,
+      "title": "Always show in full",
+      "description": "Patterns as in .gitignore whose changes are never folded, separated by commas. Example: migrations/, *.sql",
+      "default": []
     }
   }
 }

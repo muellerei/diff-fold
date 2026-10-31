@@ -6,6 +6,7 @@ import type { Register } from 'claude-code'
 
 import type { StartRoot } from '../types'
 import { settingsFrom } from './config'
+import { matcherFor } from './paths'
 import { drawSummary } from './draw'
 import { summarize, TOOLS, withOnlyFiles, withoutEditDiff } from './summary'
 
@@ -17,6 +18,7 @@ const startRoot = atom({ plugin: 'diff-fold', key: 'startRoot' } as const, null 
 
 export const register: Register = (on, options) => {
   const settings = settingsFrom(options)
+  const isKept = matcherFor(settings.keepFull)
 
   // The command is the switch. A key chord would need a button that stays drawn above the prompt to reach it, and
   // a line that is always there is what this mod leaves out.
@@ -54,7 +56,7 @@ export const register: Register = (on, options) => {
     const isExpanded = e.props.isExpanded === true
     const keptBecause = e.props.isErrored ? 'errored' : isExpanded && !isFullscreen ? 'expanded' : !(await read($, isHiding)) ? 'switched off' : undefined
     const root = (await read($, startRoot)) ?? (await $.session.root())
-    const result = keptBecause ?? summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    const result = keptBecause ?? summarize(e.props.tool, e.props.output, root, settings.smallDiffLines, isKept)
     const summary = typeof result === 'string' ? undefined : result
     const row = memberOf(isOpen, e)
     const isRowOpen = summary !== undefined && isFullscreen && (await read($, row))

@@ -6,6 +6,12 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ### Added
 
+- The setting `keepFull` names files whose changes are never folded, as patterns in the style of `.gitignore` separated by
+  commas, for example `migrations/, *.sql`. They are matched on the path inside the project, so `src/` does not match a
+  parent folder named `src`. The setting only adds to the sensitive files and never takes one off, so `!` negation is not
+  supported. Claude Code lists a setting with several values under `/plugin configure`, not in `/config`, and stores
+  what is typed there as one text with commas; both that and a list in `settings.json` work (measured, Claude Code
+  2.1.316).
 - A change in more than one place says so: `Changed src/a.ts:41 and 2 more places (+12 −4)`. Until now the line named only the
   first changed line, so an edit with `replace_all` or a Write over an existing file read as one change at one spot. A place is a
   hunk of the diff, the block Claude Code draws for it.

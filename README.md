@@ -158,6 +158,23 @@ In `/config`, under the mod:
 | ---------------- | ------- | ------------------------------------------------------------------------------------ |
 | `smallDiffLines` | `5`     | Diffs with this many changed lines or fewer are shown in full. `0` folds every diff. |
 | `icon`           | `🔶`    | The mark at the start of each summary line. Empty for none.                          |
+| `keepFull`       | none    | Patterns whose changes are never folded, separated by commas.                        |
+
+`smallDiffLines` and `icon` are also in `/config`. `keepFull` takes several values, and Claude Code lists such a setting only
+under `/plugin configure diff-fold@muellerei-diff-fold`, not in `/config`. Write the patterns as in `.gitignore`, for example
+`migrations/, *.sql, schema.prisma, infra/**/*.tf`:
+
+- a name without a slash matches at any level: `*.sql` matches `db/a.sql`
+- a trailing `/` matches a folder and everything in it: `migrations/` matches `db/migrations/001.sql`
+- a `/` at the start or in the middle anchors the pattern at the project folder: `/build/` matches `build/` but not
+  `src/build/`, `db/migrations/` matches only that folder
+- `*` and `?` stay inside one folder, `**` spans folders: `migrations/**`, `**/fixtures/`, `src/**/*.sql`
+- upper and lower case match alike, as for the sensitive files
+- negation with `!` and character classes such as `[ab]` are not supported
+
+The setting only adds files that stay in full; the sensitive files above stay in full whatever it says. It holds for every
+project, since Claude Code reads a mod's settings from your user settings only. A Bash command that changed a file it names
+shows that file's diff and sums up the rest, as for a sensitive file.
 
 For Bash commands Claude Code's own setting `bashEditDiffEnabled` matters too; see [Bash commands](#bash-commands).
 

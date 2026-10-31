@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { MAX_FILES, summarize, withOnlyFiles, withoutEditDiff, type Kept, type Summary } from './summary'
+import { matcherFor } from './paths'
 import { editInPlaces, editOutput, shellFile } from './test-support'
 
 const ROOT = '/repo'
@@ -331,6 +332,33 @@ test('withOnlyFiles keeps the shell result with the diff of just these files, as
     stdout: 'ok',
     bashEditDiff: { files: [shellFile('/repo/.env', 1)], moreFiles: 0, changedFiles: ['/repo/.env'] },
   })
+})
+
+test('a file the keepFull setting names is left whole, matched on its path inside the project', async () => {
+  const isKept = matcherFor(['src/'])
+  const root = '/Users/x/src/proj'
+  expect(summarize('Edit', editOutput('/Users/x/src/proj/lib/a.ts', 9), root, 5, isKept)).toHaveProperty('files')
+  expect(summarize('Edit', editOutput('/Users/x/src/proj/src/a.ts', 9), root, 5, isKept)).toBe('kept by setting')
+})
+
+test('keepFull holds for Write and NotebookEdit too, comes after the sensitive files, and before a held change', async () => {
+  const isKept = matcherFor(['migrations/', '.env'])
+  expect(summarize('Write', { type: 'create', filePath: '/repo/migrations/1.sql', content: 'x\n'.repeat(9) }, ROOT, 5, isKept)).toBe('kept by setting')
+  const notebook = { notebook_path: '/repo/migrations/a.ipynb', cell_id: 'c', old_source: 'a', new_source: 'b\n'.repeat(9) }
+  expect(summarize('NotebookEdit', notebook, ROOT, 5, isKept)).toBe('kept by setting')
+  expect(summarize('Edit', editOutput('/repo/.env', 9), ROOT, 5, isKept)).toBe('sensitive file')
+  expect(summarize('Edit', editOutput('/repo/migrations/1.sql', 9, { staged: true }), ROOT, 5, isKept)).toBe('kept by setting')
+})
+
+test('Bash: a file keepFull names is drawn in full by the engine like a sensitive one, the rest summed up', async () => {
+  const output = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9), shellFile('/repo/a.ts', 9), shellFile('/repo/b.ts', 9)], moreFiles: 0 } }
+  const summary = folded(summarize('Bash', output, ROOT, 5, matcherFor(['migrations/'])))
+  expect(summary).toMatchObject({ fullPaths: ['/repo/migrations/1.sql'], fullBecause: 'kept by setting' })
+  expect(summary.files.map(file => file.where)).toEqual(['a.ts:4', 'b.ts:4'])
+  const both = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9), shellFile('/repo/.env', 9), shellFile('/repo/a.ts', 9)], moreFiles: 0 } }
+  expect(folded(summarize('Bash', both, ROOT, 5, matcherFor(['migrations/']))).fullBecause).toBe('sensitive file')
+  const onlyKept = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9)], moreFiles: 0 } }
+  expect(summarize('Bash', onlyKept, ROOT, 5, matcherFor(['migrations/']))).toBe('kept by setting')
 })
 
 test('another tool, or a result that is no object, is no summary', async () => {
