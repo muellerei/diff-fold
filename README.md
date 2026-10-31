@@ -14,7 +14,8 @@ _Drawn, not recorded._
 
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
 A change in more than one place says how many follow the first, `Changed src/a.ts:41 and 2 more places (+12 −4)`, as an edit with
-`replace_all` or a rewrite of a whole file often is.
+`replace_all` or a rewrite of a whole file often is. A change that moves only whitespace, a reindent or trailing spaces taken
+out, says that too: `Changed src/a.ts:41 (+12 −12, whitespace only)`.
 Small diffs, diffs held for your review, failed edits and changes to sensitive files such as `.env` stay in full.
 To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full. Under the fullscreen layout ctrl+o keeps
 the summaries; click **▸ show diff** under one to open that diff (**▾ hide diff** folds it again), or switch them all with
@@ -64,7 +65,11 @@ marketplace. `claude plugin disable diff-fold@muellerei-diff-fold` switches it o
 | Bash that changed files ([needs a setting](#bash-commands)) | the command's own output, then one line per file, up to three, and `and N more files` |
 
 A `Changed` line from Edit, Write or Bash whose change is in more than one place adds how many follow the line it names:
-`Changed <path>:<line> and N more places (+N −M)`.
+`Changed <path>:<line> and N more places (+N −M)`. One whose change moves only indentation, trailing spaces or blank lines ends
+in `(+N −M, whitespace only)`. Files in which whitespace carries meaning never get the note: Python, YAML, Makefiles, Markdown,
+reStructuredText, TSV, patches, and indentation-based languages such as Haskell, F#, CoffeeScript, Pug or Sass. The list is not
+complete, so a language missing from it gets the note like any other file. Nor does a change get it where text spans lines, in a
+template literal, a triple-quoted string, a heredoc or after a trailing backslash, since there the indentation is content.
 
 Left in full:
 

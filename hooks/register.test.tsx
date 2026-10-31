@@ -66,6 +66,14 @@ test('an edit in more than one place names the first line and how many more plac
   expect(await two.find({ text: '🔶 Changed src/a.ts:12 and 1 more place (+6 −2)' })).toBeDefined()
 })
 
+test('a change that moves only whitespace says so after its counts', async ($, on) => {
+  host(on)
+  await start($)
+  const structuredPatch = [{ newStart: 10, lines: ['-  one()', '-  two()', '-  three()', '+    one()', '+    two()', '+    three()'] }]
+  const ui = await mount($, 'Edit', editOutput('/repo/src/a.ts', 0, { structuredPatch }))
+  expect(await ui.find({ text: '🔶 Changed src/a.ts:10 (+3 −3, whitespace only)' })).toBeDefined()
+})
+
 test('a small edit, a failed one, and any result while ctrl+o shows all are left to the engine', async ($, on) => {
   host(on)
   await start($)

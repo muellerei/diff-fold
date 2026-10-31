@@ -19,7 +19,8 @@ export function drawSummary({ Box, Text }: Elements, summary: Summary, icon: str
           <Text dimColor>
             {lead}
             {file.verb} {file.where}
-            {placesNote(file.places)} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>)
+            {placesNote(file.places)} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>
+            {file.whitespaceOnly ? ', whitespace only' : ''})
           </Text>
         ) : (
           <Text dimColor>
