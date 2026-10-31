@@ -54,3 +54,23 @@ does not compare it.
 The social preview, `docs/images/social-preview.png` (1280x640, uploaded under the repository's settings), is the picture
 `python3 docs/src/banner.py --social` writes to `social-preview.svg`, rendered with a headless browser:
 `chrome --headless --window-size=1280,640 --screenshot=docs/images/social-preview.png file://$PWD/docs/images/social-preview.svg`.
+
+## Releasing
+
+The CHANGELOG decides the version; everything else follows it.
+
+1. Pick the version from what sits under `[Unreleased]`: before 1.0, anything under Added or Changed raises the minor
+   version (0.1.0 to 0.2.0), fixes alone the patch version.
+2. On a branch, add `## [x.y.z] - YYYY-MM-DD` right under `## [Unreleased]`, so Unreleased stays as an empty section on
+   top, and set `version` in `.claude-plugin/plugin.json` to the same number. `check.py` fails while the two differ.
+3. Commit as `Release x.y.z`, open a pull request and merge it once CI is green.
+4. Tag the merge commit on `main` with a signed, annotated tag and push it:
+   `git tag -s vx.y.z -m "diff-fold x.y.z" && git push origin vx.y.z`.
+5. Create the GitHub release from the tag, titled `vx.y.z`, with the version's CHANGELOG section as its text. The
+   CHANGELOG wraps its points; the release text has each point on one line:
+
+   ```bash
+   V=x.y.z
+   awk -v v="$V" '/^## \[/ {f = index($0, "[" v "]"); next} f && /^  / {sub(/^ +/, " "); printf "%s", $0; next} f {printf "%s%s", (n++ ? "\n" : ""), $0} END {print ""}' CHANGELOG.md |
+     gh release create "v$V" --title "v$V" --notes-file - --verify-tag
+   ```
