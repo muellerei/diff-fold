@@ -21,15 +21,10 @@ Some files are never folded because a summary line would hide what a change to t
 You need Claude Code (the version is under Install in the README), Node and Python 3. From a clone:
 
 ```bash
-claude plugin validate .
-claude plugin test .
-claude --plugin-dir . -p "reply with the word ok"   # lays down the types tsc needs, once
-npx -p typescript@5 tsc -p .
-npx prettier@3 --check hooks types docs
-python3 docs/src/check.py
+sh check.sh
 ```
 
-The third line is a short call to the model, so you need to be signed in. [docs/development.md](docs/development.md) has the rest, and how to see why a diff was or wasn't folded. Stuck on a step? Tell me. I'd rather fix this page than have you struggle.
+It runs the same checks as the CI. [docs/development.md](docs/development.md) has the rest, and how to see why a diff was or wasn't folded. Stuck on a step? Tell me. I'd rather fix this page than have you struggle.
 
 ## What makes a change easy to merge
 

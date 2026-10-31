@@ -25,6 +25,14 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
   replaced the bidi marks with `�` before the terminal, so the line was not wrong, but `�` hides what the name holds, and that
   replacement is the host's own behaviour, not something the mod API promises (measured with a live session).
 
+### Fixed
+
+- The checks run from one script, `check.sh`, which the CI and the contributing notes call. The step that lays down the types
+  for `tsc` used to run `claude --plugin-dir . -p ok`, which is a full agent session in the clone with the contributor's own
+  hooks and settings. Locally it picked up open to-do lists from a memory plugin and carried on with them, up to amending
+  commits on the current branch. It now runs `-p /exit`, which Claude Code handles without a model call, with no tools, no user
+  settings and no saved session (measured, Claude Code 2.1.316).
+
 ## [0.1.0] - 2026-10-31
 
 ### Added
