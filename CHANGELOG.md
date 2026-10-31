@@ -4,6 +4,8 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-31
+
 ### Added
 
 - The setting `keepFull` names files whose changes are never folded, as patterns in the style of `.gitignore` separated by
