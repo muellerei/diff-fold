@@ -1,6 +1,7 @@
 # Compares the values written in more than one place with docs/src/common.py, so none of them drifts on its own:
 # the defaults of the settings (plugin.json, config.ts, README), the Claude Code the mod is tested with (README,
-# first entry of the CI matrix), and that the example in docs/images/fold.svg is large enough to be folded.
+# first entry of the CI matrix), the version in plugin.json against the latest release in CHANGELOG.md, and that the
+# example in docs/images/fold.svg is large enough to be folded.
 # Run: python3 docs/src/check.py
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +16,8 @@ def expect(what, found, wanted):
     if found != wanted:
         problems.append(f'{what}: {found!r}, expected {wanted!r}')
 
-config = json.loads(read('.claude-plugin/plugin.json'))['userConfig']
+plugin = json.loads(read('.claude-plugin/plugin.json'))
+config = plugin['userConfig']
 expect('plugin.json smallDiffLines default', config['smallDiffLines']['default'], SMALL_DIFF_LINES)
 expect('plugin.json icon default', config['icon']['default'], ICON)
 expect('plugin.json keepFull default', config['keepFull']['default'], KEEP_FULL)
@@ -33,6 +35,10 @@ expect('README keepFull default', row and row[1], ', '.join(f'`{p}`' for p in KE
 expect('README "(N by default)"', bool(re.search(rf'\({SMALL_DIFF_LINES} by default\)', readme)), True)
 tested = re.search(r'Tested with Claude Code (\d+(?:\.\d+)+)', readme)
 expect('README tested version', tested and tested[1], TESTED_WITH)
+
+# The CHANGELOG is the source: a release moves Unreleased under a version heading, and plugin.json follows it.
+release = re.search(r'^## \[(\d+\.\d+\.\d+)\]', read('CHANGELOG.md'), re.M)
+expect('plugin.json version against the latest CHANGELOG release', plugin['version'], release and release[1])
 
 matrix = re.search(r"claude-code: \['([\d.]+)'", read('.github/workflows/check.yml'))
 expect('CI matrix first entry', matrix and matrix[1], TESTED_WITH)
