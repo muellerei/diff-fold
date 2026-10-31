@@ -47,10 +47,31 @@ function touchesSensitiveFile(tool: string, output: object): boolean {
   return (tool === 'Edit' || tool === 'Write') && isSensitive((output as Patched).filePath)
 }
 
+// Characters that change how a line reads instead of being read: C0 and C1 controls with DEL (an escape sequence can
+// recolour or move the cursor, a newline breaks the line) and the bidi marks, embeddings, overrides and isolates
+// (`report‮fdp.ts` reads as `reportst.pdf`). Claude Code 2.1.316 turned the bidi ones into U+FFFD in a mod's text
+// before the terminal (measured), which hides that a name was dressed up and is behaviour no mod API promises. A
+// backslash is not escaped: it separates Windows paths, so a name that spells `\x1b` itself reads the same.
+const UNREADABLE = /[\x00-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩]/g
+
+// `where` with every unreadable character written as `\xNN` or `\uNNNN`, the way the name really is.
+function readable(where: string): string {
+  return where.replace(UNREADABLE, char => {
+    const code = char.charCodeAt(0)
+    return code < 0x100 ? `\\x${code.toString(16).padStart(2, '0')}` : `\\u${code.toString(16).padStart(4, '0')}`
+  })
+}
+
 // The summary for a finished call's result, or why its diff is drawn in full: another tool, a result of an unknown
 // shape, a change held for review (the file is unchanged and the person has to see what is proposed), a change to a
-// sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer.
+// sensitive file, a failed notebook edit, and a change of `smallLines` lines or fewer. Every name in it is readable,
+// whichever tool it came from.
 export function summarize(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
+  const summary = summed(tool, output, root, smallLines)
+  return typeof summary === 'string' ? summary : { ...summary, files: summary.files.map(file => ({ ...file, where: readable(file.where) })) }
+}
+
+function summed(tool: string, output: unknown, root: string, smallLines: number): Summary | Kept {
   if (typeof output !== 'object' || output === null) return 'unknown result'
   if (touchesSensitiveFile(tool, output)) return 'sensitive file'
   const isSmall = (change: Change) => change.added + change.removed <= smallLines

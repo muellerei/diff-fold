@@ -4,6 +4,13 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+### Changed
+
+- Control characters and bidi marks in a file name are shown escaped, as `\x1b` or `‮`. A name like `report‮fdp.ts`
+  can no longer pose as `reportst.pdf`, and an escape sequence in a name can't recolour the line. Claude Code 2.1.316 already
+  replaced the bidi marks with `�` before the terminal, so the line was not wrong, but `�` hides what the name holds, and that
+  replacement is the host's own behaviour, not something the mod API promises (measured with a live session).
+
 ## [0.1.0] - 2026-10-31
 
 ### Added

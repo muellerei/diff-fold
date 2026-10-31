@@ -33,8 +33,12 @@ The loader lets a module hand `$` only to functions of the same file, so the spl
 - A Bash result is handed on to the engine without its `bashEditDiff`, so the command's own output is drawn as the engine draws it.
 - `bashEditDiff` exists only when Claude Code records the changed files, which its setting `bashEditDiffEnabled` decides. A mod
   can't set it (user or managed settings only), so diff-fold documents it instead of switching it.
-- A file without a diff is named from `bashEditDiff.changedFiles`, which lists every changed file, and no more of them than
-  `moreFiles` counts. Measured with Claude Code 2.1.314: a binary file is in `changedFiles` and `moreFiles`, not in `files`; a
-  file too large to diff sets `unavailable` and names nothing.
+- A file without a diff is named from `bashEditDiff.changedFiles`, and no more of them than `moreFiles` counts. Measured with
+  Claude Code 2.1.314: a binary file is in `changedFiles` and `moreFiles`, not in `files`; a file too large to diff sets
+  `unavailable` and names nothing. Not every changed file is there: with Claude Code 2.1.316 a `sed -i` over a file whose name
+  holds an escape character changed it, and `bashEditDiff` left it out of `files` and `moreFiles` alike, so the summary neither
+  names nor counts it (measured). A mod sees only what the host reports.
+- Every name in a summary goes through one gate in `summarize`, which writes control characters and bidi marks as `\xNN` or
+  `\uNNNN`. Claude Code's own replacement of bidi marks with `�` in a mod's text is measured behaviour, not API, and says less.
 - State the drawing reads is in `$.state` (`types/index.d.ts`); the choice is also in `$.store`, so it outlives the session. The open rows are
   not stored.
