@@ -77,13 +77,20 @@ Left in full:
 - an edit or write that is only proposed and not yet written to disk: the diff is what you have to judge
 - a failed call
 - a change to a sensitive file, however large, in upper or lower case alike. A Bash command that changed one of them among
-  others shows its whole diff.
+  others shows that file's diff in full and sums up the others, so `npm install` shows the change to `package.json` and one
+  line for the lockfile. When the others add up to `smallDiffLines` lines or fewer, the whole diff stays.
   - secrets and credentials: `.env*`, `.npmrc`, `.netrc`, `.pypirc`, keys (`*.pem`, `*.key`, `id_rsa*`, `id_ecdsa*`,
     `id_ed25519*`) and anything in `.ssh/`
-  - what runs on its own: `.git*` files such as `.gitattributes` and `.gitlab-ci.yml`, anything in `.git/`, `.husky/`,
-    `.github/workflows/` and `.github/actions/`, `.mcp.json` and `hooks.json`
-  - what steers Claude or another agent: `settings*.json`, `CLAUDE.md`, `AGENTS.md`, and in `.claude/` the folders `agents`,
-    `commands`, `skills`, `hooks`, `rules` and `output-styles`
+  - what runs on its own, as a side effect of committing, installing or opening the folder: `.git*` files such as
+    `.gitattributes` and `.gitlab-ci.yml`, anything in `.git/`, `.husky/`, `.github/workflows/`, `.github/actions/` and
+    `.devcontainer/`, `.pre-commit-config.yaml`, lefthook and mise configuration, `package.json` (its install scripts),
+    `setup.py`, `.vscode/tasks.json`, `.devcontainer.json`, `.mcp.json` and `hooks.json`
+  - what steers Claude or another agent: `settings*.json`, `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
+    `.github/copilot-instructions.md`, and in `.claude/` the folders `agents`, `commands`, `skills`, `hooks`, `rules` and
+    `output-styles`
+
+  The rule for the list: a change to the file acts without anyone reading it. Configuration that runs nothing itself, such
+  as `pyproject.toml`, and lockfiles are folded.
 
   A file is matched on its name, a folder on its path: a folder named `.env` or a file `settings.ts` is folded as usual, and so
   are Claude's own notes such as `.claude/plans/`
@@ -151,6 +158,23 @@ In `/config`, under the mod:
 | ---------------- | ------- | ------------------------------------------------------------------------------------ |
 | `smallDiffLines` | `5`     | Diffs with this many changed lines or fewer are shown in full. `0` folds every diff. |
 | `icon`           | `🔶`    | The mark at the start of each summary line. Empty for none.                          |
+| `keepFull`       | none    | Patterns whose changes are never folded, separated by commas.                        |
+
+`smallDiffLines` and `icon` are also in `/config`. `keepFull` takes several values, and Claude Code lists such a setting only
+under `/plugin configure diff-fold@muellerei-diff-fold`, not in `/config`. Write the patterns as in `.gitignore`, for example
+`migrations/, *.sql, schema.prisma, infra/**/*.tf`:
+
+- a name without a slash matches at any level: `*.sql` matches `db/a.sql`
+- a trailing `/` matches a folder and everything in it: `migrations/` matches `db/migrations/001.sql`
+- a `/` at the start or in the middle anchors the pattern at the project folder: `/build/` matches `build/` but not
+  `src/build/`, `db/migrations/` matches only that folder
+- `*` and `?` stay inside one folder, `**` spans folders: `migrations/**`, `**/fixtures/`, `src/**/*.sql`
+- upper and lower case match alike, as for the sensitive files
+- negation with `!` and character classes such as `[ab]` are not supported
+
+The setting only adds files that stay in full; the sensitive files above stay in full whatever it says. It holds for every
+project, since Claude Code reads a mod's settings from your user settings only. A Bash command that changed a file it names
+shows that file's diff and sums up the rest, as for a sensitive file.
 
 For Bash commands Claude Code's own setting `bashEditDiffEnabled` matters too; see [Bash commands](#bash-commands).
 

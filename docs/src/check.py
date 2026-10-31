@@ -4,7 +4,7 @@
 # Run: python3 docs/src/check.py
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import ICON, SMALL_DIFF_LINES, TESTED_WITH
+from common import ICON, KEEP_FULL, SMALL_DIFF_LINES, TESTED_WITH
 import fold
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
@@ -18,15 +18,18 @@ def expect(what, found, wanted):
 config = json.loads(read('.claude-plugin/plugin.json'))['userConfig']
 expect('plugin.json smallDiffLines default', config['smallDiffLines']['default'], SMALL_DIFF_LINES)
 expect('plugin.json icon default', config['icon']['default'], ICON)
+expect('plugin.json keepFull default', config['keepFull']['default'], KEEP_FULL)
 
-defaults = re.search(r"DEFAULTS: Settings = \{ smallDiffLines: (\d+), icon: '([^']*)' \}", read('hooks/config.ts'))
-expect('config.ts DEFAULTS', defaults and (int(defaults[1]), defaults[2]), (SMALL_DIFF_LINES, ICON))
+defaults = re.search(r"DEFAULTS: Settings = \{ smallDiffLines: (\d+), icon: '([^']*)', keepFull: \[([^\]]*)\] \}", read('hooks/config.ts'))
+expect('config.ts DEFAULTS', defaults and (int(defaults[1]), defaults[2], defaults[3]), (SMALL_DIFF_LINES, ICON, ', '.join(map(repr, KEEP_FULL))))
 
 readme = read('README.md')
 row = re.search(r'\| `smallDiffLines` \| `(\d+)`', readme)
 expect('README smallDiffLines default', row and int(row[1]), SMALL_DIFF_LINES)
 row = re.search(r'\| `icon` +\| `([^`]*)`', readme)
 expect('README icon default', row and row[1], ICON)
+row = re.search(r'\| `keepFull` +\| ([^|]*?) +\|', readme)
+expect('README keepFull default', row and row[1], ', '.join(f'`{p}`' for p in KEEP_FULL) or 'none')
 expect('README "(N by default)"', bool(re.search(rf'\({SMALL_DIFF_LINES} by default\)', readme)), True)
 tested = re.search(r'Tested with Claude Code (\d+(?:\.\d+)+)', readme)
 expect('README tested version', tested and tested[1], TESTED_WITH)

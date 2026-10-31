@@ -6,6 +6,12 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ### Added
 
+- The setting `keepFull` names files whose changes are never folded, as patterns in the style of `.gitignore` separated by
+  commas, for example `migrations/, *.sql`. They are matched on the path inside the project, so `src/` does not match a
+  parent folder named `src`. The setting only adds to the sensitive files and never takes one off, so `!` negation is not
+  supported. Claude Code lists a setting with several values under `/plugin configure`, not in `/config`, and stores
+  what is typed there as one text with commas; both that and a list in `settings.json` work (measured, Claude Code
+  2.1.316).
 - A change in more than one place says so: `Changed src/a.ts:41 and 2 more places (+12 −4)`. Until now the line named only the
   first changed line, so an edit with `replace_all` or a Write over an existing file read as one change at one spot. A place is a
   hunk of the diff, the block Claude Code draws for it.
@@ -18,6 +24,18 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ### Changed
 
+- More files count as sensitive and stay in full: `package.json` (its `prepare` and `postinstall` scripts run on
+  `npm install`), `setup.py`, `.pre-commit-config.yaml`, lefthook and mise configuration, `.vscode/tasks.json` (a task can
+  run when the folder opens), `.devcontainer/` and `.devcontainer.json`, and the instructions of other agents,
+  `GEMINI.md` and `.github/copilot-instructions.md`. The rule behind the list is now written down next to it: a change
+  acts without anyone reading it, because the file holds a secret, runs as a side effect of a routine command, or is
+  read by an agent as instructions. `pyproject.toml`, `conftest.py` and lockfiles stay out.
+- A Bash command that changed a sensitive file among others shows that file's diff in full and sums up the rest. Until
+  now one sensitive file kept the whole diff, so with `package.json` on the list every `npm install` would have shown the
+  lockfile in full. When every file is sensitive, or the rest is small, the whole diff still stays. The debug log says
+  `folded, 1 file, 1 in full (sensitive file)`.
+- A NotebookEdit is checked against the sensitive files too. Until now only Edit, Write and Bash were, so a notebook
+  inside `.claude/skills/` or `.github/workflows/` was folded.
 - The README and the debugging notes say that Claude Code records the files a Bash command changed only inside a git
   repository. Outside one there is no diff to fold even with `bashEditDiffEnabled` on (measured, Claude Code 2.1.316).
 - Control characters and bidi marks in a file name are shown escaped, as `\x1b` or `\u202e`. A name holding U+202E,

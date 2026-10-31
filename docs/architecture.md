@@ -22,15 +22,17 @@ The loader lets a module hand `$` only to functions of the same file, so the spl
 ## Rules a change keeps
 
 - diff-fold draws only `ToolResult`. Tool rows, grouped rows and the area above the prompt belong to the engine and to other mods.
-- Anything held for review (`staged`), failed, touching a sensitive file (`touchesSensitiveFile`), or expanded (`isExpanded`) is
-  drawn by the engine. `isExpanded` counts on the main
+- Anything held for review (`staged`), failed, touching a sensitive file or one the keepFull setting names (`fullReason`), or expanded (`isExpanded`) is
+  drawn by the engine. A Bash command splits per file: the engine draws the diffs of the files that stay in full (`withOnlyFiles`), the
+  summary names the rest. `isExpanded` counts on the main
   screen only: under the fullscreen layout the host reports rows as expanded that it draws folded.
 - Every result of a folding tool leaves one line in the debug log: the tool, folded or in full and why, `isExpanded` and
   fullscreen. Never in the transcript, never a path or text from the result.
 - The **show diff** button is drawn only under the fullscreen layout, the one surface that reports clicks, and has no hotkey.
   Opened, the result goes to the engine whole (`next(e)`), so the full diff is the engine's own drawing. Which rows are open is
   per row (`memberOf`) and per session.
-- A Bash result is handed on to the engine without its `bashEditDiff`, so the command's own output is drawn as the engine draws it.
+- A Bash result is handed on to the engine without its `bashEditDiff`, or with only the diffs of the files that stay in full
+  (`withOnlyFiles`), so the command's own output is drawn as the engine draws it.
 - `bashEditDiff` exists only when Claude Code records the changed files, which its setting `bashEditDiffEnabled` decides. A mod
   can't set it (user or managed settings only), so diff-fold documents it instead of switching it.
 - A file without a diff is named from `bashEditDiff.changedFiles`, and no more of them than `moreFiles` counts. Measured with

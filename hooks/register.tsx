@@ -6,8 +6,9 @@ import type { Register } from 'claude-code'
 
 import type { StartRoot } from '../types'
 import { settingsFrom } from './config'
+import { matcherFor } from './paths'
 import { drawSummary } from './draw'
-import { summarize, TOOLS, withoutEditDiff } from './summary'
+import { summarize, TOOLS, withOnlyFiles, withoutEditDiff } from './summary'
 
 const COMMAND = 'diff-fold'
 const STORE_KEY = 'isHiding'
@@ -17,6 +18,7 @@ const startRoot = atom({ plugin: 'diff-fold', key: 'startRoot' } as const, null 
 
 export const register: Register = (on, options) => {
   const settings = settingsFrom(options)
+  const isKept = matcherFor(settings.keepFull)
 
   // The command is the switch. A key chord would need a button that stays drawn above the prompt to reach it, and
   // a line that is always there is what this mod leaves out.
@@ -54,13 +56,14 @@ export const register: Register = (on, options) => {
     const isExpanded = e.props.isExpanded === true
     const keptBecause = e.props.isErrored ? 'errored' : isExpanded && !isFullscreen ? 'expanded' : !(await read($, isHiding)) ? 'switched off' : undefined
     const root = (await read($, startRoot)) ?? (await $.session.root())
-    const result = keptBecause ?? summarize(e.props.tool, e.props.output, root, settings.smallDiffLines)
+    const result = keptBecause ?? summarize(e.props.tool, e.props.output, root, settings.smallDiffLines, isKept)
     const summary = typeof result === 'string' ? undefined : result
     const row = memberOf(isOpen, e)
     const isRowOpen = summary !== undefined && isFullscreen && (await read($, row))
     const fileCount = summary ? summary.files.length + summary.more : 0
     // Debug log only, never the transcript, and no content: the tool, the decision and the two facts it turns on.
-    const decision = isRowOpen ? 'in full, opened' : summary ? `folded, ${fileCount} ${fileCount === 1 ? 'file' : 'files'}` : `in full, ${result}`
+    const fullNote = summary?.fullPaths ? `, ${summary.fullPaths.length} in full (${summary.fullBecause})` : ''
+    const decision = isRowOpen ? 'in full, opened' : summary ? `folded, ${fileCount} ${fileCount === 1 ? 'file' : 'files'}${fullNote}` : `in full, ${result}`
     $.ui.log(`diff-fold: ${e.props.tool} ${decision} (isExpanded=${isExpanded}, fullscreen=${isFullscreen})`, { to: 'debug' })
     if (!summary) return next(e)
 
@@ -75,8 +78,10 @@ export const register: Register = (on, options) => {
           {await next(e)}
         </Box>
       )
-    // A shell command keeps its own output, drawn by the engine without the diff; the summary follows it.
-    const drawn = e.props.tool === 'Bash' && (await next({ ...e, props: { ...e.props, output: withoutEditDiff(e.props.output) } }))
+    // A shell command keeps its own output, drawn by the engine without the diff, or with the diff of only the files
+    // that stay in full; the summary of the rest follows it.
+    const shellOutput = summary.fullPaths ? withOnlyFiles(e.props.output, summary.fullPaths) : withoutEditDiff(e.props.output)
+    const drawn = e.props.tool === 'Bash' && (await next({ ...e, props: { ...e.props, output: shellOutput } }))
     return (
       <Box flexDirection="column">
         {drawn}

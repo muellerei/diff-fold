@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { MAX_FILES, summarize, withoutEditDiff, type Kept, type Summary } from './summary'
+import { MAX_FILES, summarize, withOnlyFiles, withoutEditDiff, type Kept, type Summary } from './summary'
+import { matcherFor } from './paths'
 import { editInPlaces, editOutput, shellFile } from './test-support'
 
 const ROOT = '/repo'
@@ -233,6 +234,51 @@ test('also left whole: what runs on its own, what holds credentials, and what st
   }
 })
 
+test('also left whole: what runs as a side effect of installing, committing or opening the folder, and other agents\u2019 instructions', async () => {
+  for (const path of [
+    '/repo/package.json',
+    '/repo/setup.py',
+    '/repo/.pre-commit-config.yaml',
+    '/repo/.pre-commit-config.yml',
+    '/repo/lefthook.yml',
+    '/repo/.lefthook.toml',
+    '/repo/lefthook-local.jsonc',
+    '/repo/.config/lefthook.yml',
+    '/repo/mise.toml',
+    '/repo/.mise.local.toml',
+    '/repo/.vscode/tasks.json',
+    '/repo/.devcontainer/devcontainer.json',
+    '/repo/.devcontainer/Dockerfile',
+    '/repo/.devcontainer.json',
+    '/repo/GEMINI.md',
+    '/repo/.github/copilot-instructions.md',
+    '/repo/PACKAGE.JSON',
+    'C:\\repo\\.vscode\\tasks.json',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toBe('sensitive file')
+  }
+})
+
+test('left out of the fixed list on purpose: configuration that runs nothing itself, lockfiles, look-alikes', async () => {
+  for (const path of [
+    '/repo/pyproject.toml',
+    '/repo/tests/conftest.py',
+    '/repo/package-lock.json',
+    '/repo/tasks.json',
+    '/repo/lefthookx.yml',
+    '/repo/docs/copilot-instructions.md',
+    '/repo/src/package.json.ts',
+  ]) {
+    expect(summarize('Edit', editOutput(path, 9), ROOT, 5)).toHaveProperty('files')
+  }
+})
+
+test('NotebookEdit: a notebook in a sensitive folder is left whole, elsewhere it is folded', async () => {
+  const notebook = (path: string) => ({ notebook_path: path, cell_id: 'c1', old_source: 'a', new_source: 'b\n'.repeat(9) })
+  expect(summarize('NotebookEdit', notebook('/repo/.claude/skills/x/demo.ipynb'), ROOT, 5)).toBe('sensitive file')
+  expect(summarize('NotebookEdit', notebook('/repo/notebooks/a.ipynb'), ROOT, 5)).toHaveProperty('files')
+})
+
 test('a folder or a look-alike name is folded as usual', async () => {
   for (const path of [
     '/repo/.env/notes.ts',
@@ -250,10 +296,69 @@ test('a folder or a look-alike name is folded as usual', async () => {
   }
 })
 
-test('Bash: one sensitive file among those a command changed leaves the whole diff in full', async () => {
-  const output = { bashEditDiff: { files: [shellFile('/repo/a.ts', 9), shellFile('/repo/.env', 1)], moreFiles: 0 } }
-  expect(summarize('Bash', output, ROOT, 5)).toBe('sensitive file')
-  expect(summarize('Bash', { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)] } }, ROOT, 5)).toHaveProperty('files')
+test('Bash: a sensitive file among others is left to the engine in full, the other files are summed up', async () => {
+  const lock = shellFile('/repo/package-lock.json', 22, { created: true })
+  const npm = {
+    bashEditDiff: { files: [shellFile('/repo/package.json', 8), lock], moreFiles: 0, changedFiles: ['/repo/package.json', '/repo/package-lock.json'] },
+  }
+  expect(summarize('Bash', npm, ROOT, 5)).toEqual({
+    files: [{ verb: 'Created', where: 'package-lock.json', change: { added: 22, removed: 0 } }],
+    more: 0,
+    fullPaths: ['/repo/package.json'],
+    fullBecause: 'sensitive file',
+  })
+  const env = {
+    bashEditDiff: { files: [shellFile('/repo/.env', 1), shellFile('/repo/a.ts', 9), shellFile('/repo/b.ts', 9), shellFile('/repo/c.ts', 9)], moreFiles: 0 },
+  }
+  const summary = folded(summarize('Bash', env, ROOT, 5))
+  expect(summary.fullPaths).toEqual(['/repo/.env'])
+  expect(summary.files.map(file => file.where)).toEqual(['a.ts:4', 'b.ts:4', 'c.ts:4'])
+})
+
+test('Bash: only sensitive files, or a small rest beside them, leave the whole diff in full', async () => {
+  const sensitive = { bashEditDiff: { files: [shellFile('/repo/.env', 9), shellFile('/repo/package.json', 9)], moreFiles: 0 } }
+  expect(summarize('Bash', sensitive, ROOT, 5)).toBe('sensitive file')
+  const smallRest = { bashEditDiff: { files: [shellFile('/repo/.env', 9), shellFile('/repo/a.ts', 3)], moreFiles: 0 } }
+  expect(summarize('Bash', smallRest, ROOT, 5)).toBe('small or no change')
+  expect(summarize('Bash', { bashEditDiff: { files: [shellFile('/repo/a.ts', 9)] } }, ROOT, 5)).not.toHaveProperty('fullPaths')
+})
+
+test('withOnlyFiles keeps the shell result with the diff of just these files, as the engine draws a shorter list', async () => {
+  const output = {
+    stdout: 'ok',
+    bashEditDiff: { files: [shellFile('/repo/.env', 1), shellFile('/repo/a.ts', 9)], moreFiles: 2, changedFiles: ['/repo/.env', '/repo/a.ts', '/repo/x.png'] },
+  }
+  expect(withOnlyFiles(output, ['/repo/.env'])).toEqual({
+    stdout: 'ok',
+    bashEditDiff: { files: [shellFile('/repo/.env', 1)], moreFiles: 0, changedFiles: ['/repo/.env'] },
+  })
+})
+
+test('a file the keepFull setting names is left whole, matched on its path inside the project', async () => {
+  const isKept = matcherFor(['src/'])
+  const root = '/Users/x/src/proj'
+  expect(summarize('Edit', editOutput('/Users/x/src/proj/lib/a.ts', 9), root, 5, isKept)).toHaveProperty('files')
+  expect(summarize('Edit', editOutput('/Users/x/src/proj/src/a.ts', 9), root, 5, isKept)).toBe('kept by setting')
+})
+
+test('keepFull holds for Write and NotebookEdit too, comes after the sensitive files, and before a held change', async () => {
+  const isKept = matcherFor(['migrations/', '.env'])
+  expect(summarize('Write', { type: 'create', filePath: '/repo/migrations/1.sql', content: 'x\n'.repeat(9) }, ROOT, 5, isKept)).toBe('kept by setting')
+  const notebook = { notebook_path: '/repo/migrations/a.ipynb', cell_id: 'c', old_source: 'a', new_source: 'b\n'.repeat(9) }
+  expect(summarize('NotebookEdit', notebook, ROOT, 5, isKept)).toBe('kept by setting')
+  expect(summarize('Edit', editOutput('/repo/.env', 9), ROOT, 5, isKept)).toBe('sensitive file')
+  expect(summarize('Edit', editOutput('/repo/migrations/1.sql', 9, { staged: true }), ROOT, 5, isKept)).toBe('kept by setting')
+})
+
+test('Bash: a file keepFull names is drawn in full by the engine like a sensitive one, the rest summed up', async () => {
+  const output = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9), shellFile('/repo/a.ts', 9), shellFile('/repo/b.ts', 9)], moreFiles: 0 } }
+  const summary = folded(summarize('Bash', output, ROOT, 5, matcherFor(['migrations/'])))
+  expect(summary).toMatchObject({ fullPaths: ['/repo/migrations/1.sql'], fullBecause: 'kept by setting' })
+  expect(summary.files.map(file => file.where)).toEqual(['a.ts:4', 'b.ts:4'])
+  const both = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9), shellFile('/repo/.env', 9), shellFile('/repo/a.ts', 9)], moreFiles: 0 } }
+  expect(folded(summarize('Bash', both, ROOT, 5, matcherFor(['migrations/']))).fullBecause).toBe('sensitive file')
+  const onlyKept = { bashEditDiff: { files: [shellFile('/repo/migrations/1.sql', 9)], moreFiles: 0 } }
+  expect(summarize('Bash', onlyKept, ROOT, 5, matcherFor(['migrations/']))).toBe('kept by setting')
 })
 
 test('another tool, or a result that is no object, is no summary', async () => {
