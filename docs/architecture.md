@@ -40,5 +40,9 @@ The loader lets a module hand `$` only to functions of the same file, so the spl
   names nor counts it (measured). A mod sees only what the host reports.
 - Every name in a summary goes through one gate in `summarize`, which writes control characters and bidi marks as `\xNN` or
   `\uNNNN`. Claude Code's own replacement of bidi marks with `�` in a mod's text is measured behaviour, not API, and says less.
+- A NotebookEdit result carries `edit_mode` (`replace`, `insert`, `delete`), which the summary does not read. Measured with Claude
+  Code 2.1.316: on `insert`, `cell_id` is the new cell's id, not the one it was inserted after, and `old_source` is absent; on
+  `delete`, `old_source` holds the removed cell and `new_source` is empty. So both name the right cell, and the counts read
+  `(+N −0)` and `(+0 −N)` under the verb `Changed`.
 - State the drawing reads is in `$.state` (`types/index.d.ts`); the choice is also in `$.store`, so it outlives the session. The open rows are
   not stored.

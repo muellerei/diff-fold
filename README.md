@@ -58,7 +58,7 @@ marketplace. `claude plugin disable diff-fold@muellerei-diff-fold` switches it o
 | Edit                                                        | `Changed <path>:<line> (+N −M)`                                                       |
 | Write, new file                                             | `Created <path> (+N −0)`                                                              |
 | Write, existing file                                        | `Changed <path>:<line> (+N −M)`                                                       |
-| NotebookEdit                                                | `Changed <notebook> cell <id> (+N −M)`                                                |
+| NotebookEdit (one cell of a Jupyter notebook, `.ipynb`)     | `Changed <notebook> cell <id> (+N −M)`                                                |
 | Bash that changed files ([needs a setting](#bash-commands)) | the command's own output, then one line per file, up to three, and `and N more files` |
 
 Left in full:
