@@ -7,6 +7,9 @@ import type { Summary } from './summary'
 
 type Elements = Pick<ReturnType<EngineInterface['ui']['resolve']>, 'Box' | 'Text'>
 
+// ` and 2 more places` after the first changed line, nothing for a change in one place.
+const placesNote = (places: number | undefined) => (places && places > 1 ? ` and ${places - 1} more ${places === 2 ? 'place' : 'places'}` : '')
+
 export function drawSummary({ Box, Text }: Elements, summary: Summary, icon: string): RenderElement {
   const lead = icon ? `${icon} ` : ''
   return (
@@ -15,7 +18,8 @@ export function drawSummary({ Box, Text }: Elements, summary: Summary, icon: str
         file.change ? (
           <Text dimColor>
             {lead}
-            {file.verb} {file.where} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>)
+            {file.verb} {file.where}
+            {placesNote(file.places)} (<Text color="success">+{file.change.added}</Text> <Text color="error">−{file.change.removed}</Text>)
           </Text>
         ) : (
           <Text dimColor>

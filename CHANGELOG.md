@@ -4,6 +4,12 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+### Added
+
+- A change in more than one place says so: `Changed src/a.ts:41 and 2 more places (+12 −4)`. Until now the line named only the
+  first changed line, so an edit with `replace_all` or a Write over an existing file read as one change at one spot. A place is a
+  hunk of the diff, the block Claude Code draws for it.
+
 ### Changed
 
 - Control characters and bidi marks in a file name are shown escaped, as `\x1b` or `‮`. A name like `report‮fdp.ts`

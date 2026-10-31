@@ -2,7 +2,7 @@ import type { RenderElement } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import type { Engine, TestBody } from 'claude-code/testing'
 
-import { editOutput, shellFile } from './test-support'
+import { editInPlaces, editOutput, shellFile } from './test-support'
 
 type On = Parameters<TestBody>[1]
 
@@ -55,6 +55,15 @@ test('a large edit becomes one line with its path, line and counts, added in gre
   expect(all.find(t => t.text === '+6')?.props.color).toBe('success')
   expect(all.find(t => t.text === '−1')?.props.color).toBe('error')
   expect(await ui.find({ text: 'full diff' })).toBeUndefined()
+})
+
+test('an edit in more than one place names the first line and how many more places follow', async ($, on) => {
+  host(on)
+  await start($)
+  const ui = await mount($, 'Edit', editInPlaces('/repo/src/a.ts', 3, 2))
+  expect(await ui.find({ text: '🔶 Changed src/a.ts:12 and 2 more places (+6 −3)' })).toBeDefined()
+  const two = await mount($, 'Edit', editInPlaces('/repo/src/a.ts', 2, 3))
+  expect(await two.find({ text: '🔶 Changed src/a.ts:12 and 1 more place (+6 −2)' })).toBeDefined()
 })
 
 test('a small edit, a failed one, and any result while ctrl+o shows all are left to the engine', async ($, on) => {
