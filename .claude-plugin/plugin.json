@@ -1,6 +1,6 @@
 {
   "name": "diff-fold",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows one summary line per file instead of the diff under Edit, Write, NotebookEdit and file-changing Bash calls",
   "author": {
     "name": "Patrick Müller",
