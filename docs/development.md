@@ -8,17 +8,15 @@ claude --plugin-dir .
 
 ## Checks
 
-The CI runs these on every push and pull request and once a week (`.github/workflows/check.yml`):
+`check.sh` runs every check, the same script the CI runs on every push and pull request and once a week
+(`.github/workflows/check.yml`):
 
 ```bash
-claude plugin validate . --strict
-claude plugin test .
-CLAUDE_CODE_PLUGIN_DIR_WATCH=1 claude --plugin-dir . -p ok   # lays down the types tsc needs
-npx -p typescript@5 tsc -p .
-npx prettier@3 --check hooks types docs
-python3 docs/src/check.py
-sh docs/src/build.sh && git diff --exit-code -- docs
+sh check.sh
 ```
+
+It starts Claude Code once to lay down the types `tsc` needs, with `-p /exit` and no tools or user settings. A prompt the model
+answers would start a full session that picks up open to-do lists and acts on them in the clone.
 
 `tsc` checks against the types Claude Code writes to `.claude-plugin/types/` when it loads the mod. They follow the Claude Code that
 wrote them, so lay them down again after an update. They are never committed.
