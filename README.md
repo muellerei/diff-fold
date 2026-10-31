@@ -129,6 +129,8 @@ To turn it on, add this line to your user settings, `~/.claude/settings.json`, a
 - It has to be the user settings (or settings your organization manages). Claude Code doesn't take this setting from a
   project's `.claude/settings.json`.
 - The environment variable `CLAUDE_CODE_BASH_EDIT_DIFF=1` does the same and wins over the setting; `0` turns it off.
+- Claude Code records the changes only inside a git repository. Outside one, a Bash command that changes files shows its output
+  only, setting or not, and diff-fold has nothing to fold (measured, Claude Code 2.1.316). Edit and Write are folded anywhere.
 - diff-fold can't turn it on for you: a mod has no way to change Claude Code's own settings.
 - The command's own output (test results, a listing) is never folded, only the diff of the files it changed.
 - Without the setting there was no diff here in the `acceptEdits` and the `bypassPermissions` mode alike (measured, Claude

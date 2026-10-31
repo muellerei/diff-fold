@@ -31,8 +31,8 @@ When a diff is not folded as expected, start Claude Code with `--debug-file <pat
 per result (a scroll, a resize), so the same line may repeat.
 
 A Bash call that changed files but left no line usually came without `bashEditDiff`: Claude Code records the changed files only
-when `bashEditDiffEnabled` is on (see the README), and without them the hook was not called for the call at all (measured, Claude
-Code 2.1.314).
+when `bashEditDiffEnabled` is on (see the README) and the command runs inside a git repository (measured, Claude Code 2.1.316).
+Without them the hook was not called for the call at all (measured, Claude Code 2.1.314).
 
 ## Tests
 
