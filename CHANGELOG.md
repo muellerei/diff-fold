@@ -4,6 +4,8 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-31
+
 ### Added
 
 - One summary line per file in place of the diff under Edit, Write, NotebookEdit and file-changing Bash calls, with the path
