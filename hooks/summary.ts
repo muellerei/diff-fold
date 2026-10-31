@@ -48,12 +48,13 @@ function touchesSensitiveFile(tool: string, output: object): boolean {
   return (tool === 'Edit' || tool === 'Write') && isSensitive((output as Patched).filePath)
 }
 
-// Characters that change how a line reads instead of being read: C0 and C1 controls with DEL (an escape sequence can
-// recolour or move the cursor, a newline breaks the line) and the bidi marks, embeddings, overrides and isolates
-// (`report‮fdp.ts` reads as `reportst.pdf`). Claude Code 2.1.316 turned the bidi ones into U+FFFD in a mod's text
-// before the terminal (measured), which hides that a name was dressed up and is behaviour no mod API promises. A
-// backslash is not escaped: it separates Windows paths, so a name that spells `\x1b` itself reads the same.
-const UNREADABLE = /[\x00-\x1f\x7f-\x9f؜‎‏‪-‮⁦-⁩]/g
+// Characters that change how a line reads instead of being read: C0 and C1 controls with DEL (an escape sequence
+// can recolour or move the cursor, a newline breaks the line) and the bidi marks, embeddings, overrides and
+// isolates (a name holding U+202E, `report\u202efdp.ts`, reads as `reportst.pdf`). Claude Code 2.1.316 turned the
+// bidi ones into U+FFFD in a mod's text before the terminal (measured), which hides that a name was dressed up
+// and is behaviour no mod API promises. A backslash is not escaped: it separates Windows paths, so a name that
+// spells `\x1b` itself reads the same.
+const UNREADABLE = /[\x00-\x1f\x7f-\x9f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g
 
 // `where` with every unreadable character written as `\xNN` or `\uNNNN`, the way the name really is.
 function readable(where: string): string {
