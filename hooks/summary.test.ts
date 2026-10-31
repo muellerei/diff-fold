@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { MAX_FILES, summarize, withoutEditDiff, type Kept, type Summary } from './summary'
-import { editOutput, shellFile } from './test-support'
+import { editInPlaces, editOutput, shellFile } from './test-support'
 
 const ROOT = '/repo'
 
@@ -31,6 +31,16 @@ test('Edit: a change held for review is left whole, its diff is what the person 
 test('Edit: an empty patch takes git counts, and then names no line', async () => {
   const output = editOutput('/repo/a.ts', 0, { structuredPatch: [], gitDiff: { additions: 40, deletions: 2 } })
   expect(folded(summarize('Edit', output, ROOT, 5)).files).toEqual([{ verb: 'Changed', where: 'a.ts', change: { added: 40, removed: 2 } }])
+})
+
+test('a change in more than one place counts its places, so the first line does not read as the only one', async () => {
+  expect(folded(summarize('Edit', editInPlaces('/repo/a.ts', 3, 2), ROOT, 5)).files).toEqual([
+    { verb: 'Changed', where: 'a.ts:12', change: { added: 6, removed: 3 }, places: 3 },
+  ])
+  const updated = { ...editInPlaces('/repo/old.ts', 2, 4), type: 'update', content: '' }
+  expect(folded(summarize('Write', updated, ROOT, 5)).files[0]).toMatchObject({ where: 'old.ts:12', places: 2 })
+  const file = { filePath: '/repo/b.ts', hunks: editInPlaces('/repo/b.ts', 2, 3).structuredPatch }
+  expect(folded(summarize('Bash', { bashEditDiff: { files: [file], moreFiles: 0 } }, ROOT, 5)).files[0]).toMatchObject({ where: 'b.ts:12', places: 2 })
 })
 
 test('Write: a new file is Created with its line count; an overwrite is Changed like an edit', async () => {

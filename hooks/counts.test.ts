@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { countCell, countHunks, firstChangedLine, linesOf, sum } from './counts'
+import { countCell, countHunks, firstChangedLine, linesOf, placesOf, sum } from './counts'
 
 test('countHunks counts added and removed lines over every hunk, never context', async () => {
   expect(countHunks([{ lines: [' a', '-b', '+c', '+d'] }, { lines: ['-e'] }])).toEqual({ added: 2, removed: 2 })
@@ -40,4 +40,10 @@ test('countCell counts the lines on one side only, repeated lines once each', as
   expect(countCell('a\nb\nb', 'b\nc\nc')).toEqual({ added: 2, removed: 2 })
   expect(countCell(undefined, 'x\ny')).toEqual({ added: 2, removed: 0 })
   expect(countCell('x', '')).toEqual({ added: 0, removed: 1 })
+})
+
+test('placesOf counts the hunks that change something; context alone is no place', async () => {
+  expect(placesOf([{ lines: [' a', '-b'] }, { lines: ['+c'] }, { lines: [' d'] }])).toBe(2)
+  expect(placesOf([])).toBe(0)
+  expect(placesOf(undefined)).toBe(0)
 })

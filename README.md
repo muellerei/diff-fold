@@ -13,6 +13,8 @@ A long diff pushes the conversation out of view, and once the edit is done you r
 _Drawn, not recorded._
 
 The path is relative to the project, the number after the colon is the first changed line, and the counts are green and red.
+A change in more than one place says how many follow the first, `Changed src/a.ts:41 and 2 more places (+12 −4)`, as an edit with
+`replace_all` or a rewrite of a whole file often is.
 Small diffs, diffs held for your review, failed edits and changes to sensitive files such as `.env` stay in full.
 To see a folded diff, press ctrl+o: the expanded transcript shows every diff in full. Under the fullscreen layout ctrl+o keeps
 the summaries; click **▸ show diff** under one to open that diff (**▾ hide diff** folds it again), or switch them all with
@@ -61,6 +63,9 @@ marketplace. `claude plugin disable diff-fold@muellerei-diff-fold` switches it o
 | NotebookEdit (one cell of a Jupyter notebook, `.ipynb`)     | `Changed <notebook> cell <id> (+N −M)`                                                |
 | Bash that changed files ([needs a setting](#bash-commands)) | the command's own output, then one line per file, up to three, and `and N more files` |
 
+A `Changed` line from Edit, Write or Bash whose change is in more than one place adds how many follow the line it names:
+`Changed <path>:<line> and N more places (+N −M)`.
+
 Left in full:
 
 - a change of `smallDiffLines` lines or fewer (5 by default); for a Bash command, the lines of all its files together
@@ -100,7 +105,7 @@ permission mode.
 With the setting on, a Bash call that changed five files ends like this, a new or removed file named so:
 
 ```text
-🔶 Changed src/a.ts:12 (+8 −8)
+🔶 Changed src/a.ts:12 and 3 more places (+8 −8)
 🔶 Created src/b.ts (+40 −0)
 🔶 Deleted src/c.ts (+0 −22)
 🔶 and 2 more files

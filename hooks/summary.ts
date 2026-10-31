@@ -1,11 +1,12 @@
 // What a hidden diff is summed up as: one line per changed file. Pure: no `$`, no host, so every rule here is
 // tested without a session.
 
-import { countCell, countHunks, firstChangedLine, linesOf, sum, type Change, type Hunk } from './counts'
+import { countCell, countHunks, firstChangedLine, linesOf, placesOf, sum, type Change, type Hunk } from './counts'
 import { relativeTo } from './paths'
 
 // `change` is absent for a file the host changed but has no diff for (a binary one): it is named without counts.
-export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change }
+// `places` is set only when the change is in more than one place, so the line in `where` does not read as the only one.
+export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change; places?: number }
 // A Bash command that changed more files than are listed ends in one line that counts the rest.
 export type Summary = { files: FileLine[]; more: number }
 // Why a result's diff stays in full, as the debug log names it.
@@ -105,6 +106,12 @@ function summed(tool: string, output: unknown, root: string, smallLines: number)
 // `path` relative to `root`, and the line the change starts at where there is one.
 const located = (path: string, root: string, line: number | undefined) => relativeTo(path, root) + (line ? `:${line}` : '')
 
+// The places of a patch, as a `FileLine` field when there are more than one.
+const morePlaces = (hunks: readonly Hunk[] | undefined) => {
+  const places = placesOf(hunks)
+  return places > 1 ? { places } : {}
+}
+
 // An Edit, or a Write over an existing file.
 function patchedLine(output: Patched, root: string): FileLine | Kept {
   if (output.staged) return 'held for review'
@@ -115,7 +122,7 @@ function patchedLine(output: Patched, root: string): FileLine | Kept {
       ? { added: output.gitDiff.additions, removed: output.gitDiff.deletions }
       : countHunks(output.structuredPatch)
   const line = firstChangedLine(output.structuredPatch)
-  return { verb: 'Changed', where: located(output.filePath, root, line), change }
+  return { verb: 'Changed', where: located(output.filePath, root, line), change, ...morePlaces(output.structuredPatch) }
 }
 
 // The files a shell command changed (sed -i, a heredoc, a generator), each on a line of its own. Judged small by the
@@ -129,6 +136,7 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
       verb: file.created ? 'Created' : file.deleted ? 'Deleted' : 'Changed',
       where: located(file.filePath, root, line),
       change: countHunks(file.hunks),
+      ...morePlaces(file.hunks),
     }
   })
   // The files the host counted but has no diff for, named where `changedFiles` has them, no more than it counted.

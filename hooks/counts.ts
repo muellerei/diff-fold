@@ -19,16 +19,25 @@ export function sum(changes: readonly Change[]): Change {
   return changes.reduce((total, change) => ({ added: total.added + change.added, removed: total.removed + change.removed }), { added: 0, removed: 0 })
 }
 
+// A line of a hunk that the patch added or removed, not context.
+const isChange = (text: string) => text.startsWith('+') || text.startsWith('-')
+
 // The line number, in the new file, of the first line the patch added or removed.
 export function firstChangedLine(hunks: readonly Hunk[] = []): number | undefined {
   const hunk = hunks[0]
   if (!hunk?.newStart) return undefined
   let line = hunk.newStart
   for (const text of hunk.lines) {
-    if (text.startsWith('+') || text.startsWith('-')) return line
+    if (isChange(text)) return line
     line += 1
   }
   return undefined
+}
+
+// How many places a patch changes: the hunks with an added or removed line. A hunk already joins changes whose
+// context overlaps, so each one is a block of its own in the diff.
+export function placesOf(hunks: readonly Hunk[] = []): number {
+  return hunks.filter(hunk => hunk.lines.some(isChange)).length
 }
 
 export function linesOf(text: string | undefined): number {
