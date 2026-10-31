@@ -43,6 +43,54 @@ test('a change in more than one place counts its places, so the first line does 
   expect(folded(summarize('Bash', { bashEditDiff: { files: [file], moreFiles: 0 } }, ROOT, 5)).files[0]).toMatchObject({ where: 'b.ts:12', places: 2 })
 })
 
+test('a change that moves only whitespace says so, for an edit, an overwrite and a shell command alike', async () => {
+  const reindented = [{ newStart: 10, lines: [' a', '-  one()', '-  two()', '-  three()', '+    one()', '+    two()', '+    three()'] }]
+  expect(folded(summarize('Edit', editOutput('/repo/a.ts', 0, { structuredPatch: reindented }), ROOT, 5)).files).toEqual([
+    { verb: 'Changed', where: 'a.ts:11', change: { added: 3, removed: 3 }, whitespaceOnly: true },
+  ])
+  const updated = { ...editOutput('/repo/b.ts', 0, { structuredPatch: reindented }), type: 'update', content: '' }
+  expect(folded(summarize('Write', updated, ROOT, 5)).files[0]).toMatchObject({ whitespaceOnly: true })
+  const shell = { bashEditDiff: { files: [{ filePath: '/repo/c.ts', hunks: reindented }], moreFiles: 0 } }
+  expect(folded(summarize('Bash', shell, ROOT, 5)).files[0]).toMatchObject({ whitespaceOnly: true })
+  expect(folded(summarize('Edit', editOutput('/repo/a.ts', 6), ROOT, 5)).files[0]).not.toHaveProperty('whitespaceOnly')
+})
+
+test('a file in which whitespace carries meaning is never called whitespace only: Python, YAML, Makefile, Markdown and the like', async () => {
+  const reindented = [{ newStart: 10, lines: [' a', '-  one()', '-  two()', '-  three()', '+    one()', '+    two()', '+    three()'] }]
+  const names = [
+    'a.py',
+    'ci.YAML',
+    'Makefile',
+    'rules.mk',
+    'README.md',
+    'guide.rst',
+    'data.tsv',
+    'fix.patch',
+    'Main.hs',
+    'app.coffee',
+    'view.pug',
+    'style.sass',
+  ]
+  for (const name of names) {
+    expect(folded(summarize('Edit', editOutput(`/repo/${name}`, 0, { structuredPatch: reindented }), ROOT, 5)).files[0], name).not.toHaveProperty(
+      'whitespaceOnly',
+    )
+  }
+  const shell = { bashEditDiff: { files: [{ filePath: '/repo/a.py', hunks: reindented }], moreFiles: 0 } }
+  expect(folded(summarize('Bash', shell, ROOT, 5)).files[0]).not.toHaveProperty('whitespaceOnly')
+  for (const name of ['py/a.ts', 'makefile.ts', 'notes.md/b.ts', 'style.scss']) {
+    expect(folded(summarize('Edit', editOutput(`/repo/${name}`, 0, { structuredPatch: reindented }), ROOT, 5)).files[0], name).toMatchObject({
+      whitespaceOnly: true,
+    })
+  }
+})
+
+test('a file a shell command created or deleted is never called whitespace only, blank lines or not', async () => {
+  const blank = [{ newStart: 1, lines: ['+', '+'] }]
+  const shell = { bashEditDiff: { files: [{ filePath: '/repo/c.txt', created: true, hunks: blank }], moreFiles: 0 } }
+  expect(folded(summarize('Bash', shell, ROOT, 0)).files[0]).not.toHaveProperty('whitespaceOnly')
+})
+
 test('Write: a new file is Created with its line count; an overwrite is Changed like an edit', async () => {
   const created = { type: 'create', filePath: '/repo/new.ts', content: 'a\nb\nc\nd\ne\nf\n', structuredPatch: [], originalFile: null }
   expect(folded(summarize('Write', created, ROOT, 5)).files).toEqual([{ verb: 'Created', where: 'new.ts', change: { added: 6, removed: 0 } }])

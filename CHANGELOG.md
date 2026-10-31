@@ -9,6 +9,12 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 - A change in more than one place says so: `Changed src/a.ts:41 and 2 more places (+12 −4)`. Until now the line named only the
   first changed line, so an edit with `replace_all` or a Write over an existing file read as one change at one spot. A place is a
   hunk of the diff, the block Claude Code draws for it.
+- A change that moves only whitespace says so: `Changed src/a.ts:41 (+12 −12, whitespace only)`. Indentation, tabs,
+  trailing spaces and blank lines count. A line break that moves does not, since `// x` and `run()` drawn onto one line comment
+  the call out, and neither does whitespace inside a line, which may sit in a string, or lines that change places. Files in
+  which whitespace carries meaning (Python, YAML, Makefiles, Markdown and others) never get the note: a reindent there can
+  change what the code does, and the diff alone cannot tell. The list is not complete. Nor does a place get the note where text
+  spans lines (a template literal, a triple-quoted string, a heredoc, a trailing backslash), since there the indentation is content.
 
 ### Changed
 

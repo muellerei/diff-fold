@@ -1,12 +1,13 @@
 // What a hidden diff is summed up as: one line per changed file. Pure: no `$`, no host, so every rule here is
 // tested without a session.
 
-import { countCell, countHunks, firstChangedLine, linesOf, placesOf, sum, type Change, type Hunk } from './counts'
+import { countCell, countHunks, firstChangedLine, isWhitespaceOnly, linesOf, placesOf, sum, type Change, type Hunk } from './counts'
 import { relativeTo } from './paths'
 
 // `change` is absent for a file the host changed but has no diff for (a binary one): it is named without counts.
 // `places` is set only when the change is in more than one place, so the line in `where` does not read as the only one.
-export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change; places?: number }
+// `whitespaceOnly` is set only when the change moves nothing but whitespace, so a reindent does not pass for an edit.
+export type FileLine = { verb: 'Changed' | 'Created' | 'Deleted'; where: string; change?: Change; places?: number; whitespaceOnly?: true }
 // A Bash command that changed more files than are listed ends in one line that counts the rest.
 export type Summary = { files: FileLine[]; more: number }
 // Why a result's diff stays in full, as the debug log names it.
@@ -36,10 +37,20 @@ const SENSITIVE_NAME =
 // `.claude` that steer Claude. `.claude/plans`, `.claude/projects` and the like are Claude's own notes and are folded.
 const SENSITIVE_DIR = /(^|\/)(\.git|\.husky|\.ssh|\.github\/(workflows|actions)|\.claude\/(agents|commands|skills|hooks|rules|output-styles))\//i
 
+// Files in which whitespace carries meaning, so a change to it is never called whitespace only: indentation is structure
+// (Python, YAML, CoffeeScript, Haskell, F#, Nim, Elm, Pug, Haml, Slim, Sass, Stylus), a tab is syntax or a separator
+// (Makefile, TSV), spaces and blank lines are markup (Markdown, reStructuredText), or a leading space is a context line
+// (patches). Matched on the file name like the list above. Not every such language is in it; one missing is called
+// whitespace only as any other file is.
+const WHITESPACE_MATTERS =
+  /^((gnu)?makefile|.*\.(pyw?|pyi|ya?ml|coffee|l?hs|fsx?|fsi|nim|elm|pug|jade|haml|slim|sass|styl|mk|tsv|md|markdown|mdx|rst|diff|patch))$/i
+
+const fileName = (path: string) => path.replace(/\\/g, '/').split('/').pop() ?? ''
+
 const isSensitive = (path: unknown) => {
   if (typeof path !== 'string') return false
   const slashed = path.replace(/\\/g, '/')
-  return SENSITIVE_NAME.test(slashed.split('/').pop() ?? '') || SENSITIVE_DIR.test(slashed)
+  return SENSITIVE_NAME.test(fileName(slashed)) || SENSITIVE_DIR.test(slashed)
 }
 
 // Whether a result changed a sensitive file; for a shell command, any one of the files it changed.
@@ -107,10 +118,13 @@ function summed(tool: string, output: unknown, root: string, smallLines: number)
 // `path` relative to `root`, and the line the change starts at where there is one.
 const located = (path: string, root: string, line: number | undefined) => relativeTo(path, root) + (line ? `:${line}` : '')
 
-// The places of a patch, as a `FileLine` field when there are more than one.
-const morePlaces = (hunks: readonly Hunk[] | undefined) => {
+// What a patch's hunks add to its line as notes after the counts, as `FileLine` fields: its places when there are more
+// than one, and whether it moves only whitespace, never in a file whose whitespace carries meaning. Only for a changed
+// file: a created or deleted one has nothing to compare against.
+const notesOf = (hunks: readonly Hunk[] | undefined, path: string) => {
   const places = placesOf(hunks)
-  return places > 1 ? { places } : {}
+  const whitespaceOnly = !WHITESPACE_MATTERS.test(fileName(path)) && isWhitespaceOnly(hunks)
+  return { ...(places > 1 ? { places } : {}), ...(whitespaceOnly ? { whitespaceOnly: true as const } : {}) }
 }
 
 // An Edit, or a Write over an existing file.
@@ -123,7 +137,7 @@ function patchedLine(output: Patched, root: string): FileLine | Kept {
       ? { added: output.gitDiff.additions, removed: output.gitDiff.deletions }
       : countHunks(output.structuredPatch)
   const line = firstChangedLine(output.structuredPatch)
-  return { verb: 'Changed', where: located(output.filePath, root, line), change, ...morePlaces(output.structuredPatch) }
+  return { verb: 'Changed', where: located(output.filePath, root, line), change, ...notesOf(output.structuredPatch, output.filePath) }
 }
 
 // The files a shell command changed (sed -i, a heredoc, a generator), each on a line of its own. Judged small by the
@@ -132,12 +146,12 @@ function shellSummary(output: Shell, root: string, isSmall: (change: Change) => 
   const files = output.bashEditDiff?.files ?? []
   if (files.length === 0) return 'no diff'
   const lines: FileLine[] = files.map(file => {
-    const line = file.created || file.deleted ? undefined : firstChangedLine(file.hunks)
+    const changed = !file.created && !file.deleted
     return {
       verb: file.created ? 'Created' : file.deleted ? 'Deleted' : 'Changed',
-      where: located(file.filePath, root, line),
+      where: located(file.filePath, root, changed ? firstChangedLine(file.hunks) : undefined),
       change: countHunks(file.hunks),
-      ...morePlaces(file.hunks),
+      ...(changed ? notesOf(file.hunks, file.filePath) : {}),
     }
   })
   // The files the host counted but has no diff for, named where `changedFiles` has them, no more than it counted.
