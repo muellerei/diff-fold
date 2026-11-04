@@ -19,6 +19,7 @@ def mix(a, b, t):
 def gradient(w, h, a, b, diagonal):
     img = Image.new('RGB', (w, h))
     px = img.load()
+    assert px is not None
     for y in range(h):
         for x in range(w):
             px[x, y] = mix(a, b, (x + y) / (w + h) if diagonal else x / w)
@@ -53,4 +54,4 @@ d.polygon([(dx, dy - r), (dx + r, dy), (dx, dy + r), (dx - r, dy)], fill=ORANGE)
 bar = (330 * S, dy - 30 * S, 850 * S, dy + 30 * S)
 icon.paste(gradient(small, 16, *ACCENT, False).resize((bar[2] - bar[0], bar[3] - bar[1])), bar[:2], rounded(bar[2] - bar[0], bar[3] - bar[1], 30 * S))
 
-icon.resize((SIZE, SIZE), Image.LANCZOS).save(OUT, optimize=True)
+icon.resize((SIZE, SIZE), Image.Resampling.LANCZOS).save(OUT, optimize=True)
