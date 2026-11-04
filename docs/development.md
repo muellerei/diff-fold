@@ -21,6 +21,12 @@ answers would start a full session that picks up open to-do lists and acts on th
 `tsc` checks against the types Claude Code writes to `.claude-plugin/types/` when it loads the mod. They follow the Claude Code that
 wrote them, so lay them down again after an update. They are never committed.
 
+Biome lints `hooks/` and `types/` with its recommended rules; Prettier stays the formatter, so Biome's own is off. The two rules
+turned off and the reason for each are in `biome.jsonc`. A rule broken on purpose in one place carries a `biome-ignore` comment
+that says why. `check.sh` pins the exact Biome version, since a minor release can add rules; for lint results in the editor,
+install the version it names globally, for example `bun add -g @biomejs/biome@<version>`. Under a Node version manager a
+global `npm i -g` belongs to one Node version and is gone after switching.
+
 ## Debugging
 
 When a diff is not folded as expected, start Claude Code with `--debug-file <path>` and look for lines starting with

@@ -14,6 +14,9 @@ CLAUDE_CODE_PLUGIN_DIR_WATCH=1 claude --plugin-dir . --setting-sources "" --stri
 npx -p typescript@5 tsc -p .
 
 npx prettier@3 --check hooks types docs
+# Exact version: Biome adds rules to its recommended set in minor releases, which would turn the CI red with no change here.
+# When raising it, install the same version wherever Biome runs for the editor (docs/development.md).
+npx @biomejs/biome@2.6.5 lint --error-on-warnings
 python3 docs/src/check.py
 sh docs/src/build.sh && git diff --exit-code -- docs
 echo "all checks passed"

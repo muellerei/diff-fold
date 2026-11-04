@@ -1,0 +1,17 @@
+{
+  "files": { "includes": ["hooks/**", "types/**"] },
+  // Prettier formats; Biome only lints.
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "rules": {
+      "style": {
+        // noUncheckedIndexedAccess makes tsc flag every index; `!` marks the ones known to be in range.
+        // The rule's fix, `?.`, would turn a missing value into the text "undefined" instead of an error.
+        "noNonNullAssertion": "off",
+        // Concatenation is the style here, and a template inside a template reads worse.
+        "useTemplate": "off"
+      }
+    }
+  }
+}

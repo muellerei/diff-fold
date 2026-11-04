@@ -4,6 +4,12 @@ All notable changes to diff-fold. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+### Changed
+
+- `check.sh`, and with it the CI, lints the code with Biome next to `tsc` and Prettier. Its recommended rules found no
+  defect: two style rules are turned off with the reason in `biome.jsonc`, and the one regular expression that matches
+  control characters on purpose says so.
+
 ## [0.2.0] - 2026-10-31
 
 ### Added
