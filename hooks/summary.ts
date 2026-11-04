@@ -78,6 +78,7 @@ function changedPaths(tool: string, output: object): unknown[] {
 // bidi ones into U+FFFD in a mod's text before the terminal (measured), which hides that a name was dressed up
 // and is behaviour no mod API promises. A backslash is not escaped: it separates Windows paths, so a name that
 // spells `\x1b` itself reads the same.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is what this is for
 const UNREADABLE = /[\x00-\x1f\x7f-\x9f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g
 
 // `where` with every unreadable character written as `\xNN` or `\uNNNN`, the way the name really is.
