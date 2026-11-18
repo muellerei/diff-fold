@@ -5,8 +5,7 @@
   "plugins": [
     {
       "name": "diff-fold",
-      "source": "./",
-      "description": "One summary line per file instead of the diff under a finished edit."
+      "source": "./"
     }
   ]
 }
